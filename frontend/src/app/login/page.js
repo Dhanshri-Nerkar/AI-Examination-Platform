@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { loginUser } from "../../../lib/api";
-
+import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,7 +15,6 @@ export default function LoginPage() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -62,143 +62,269 @@ export default function LoginPage() {
     }
   }
 
-
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "20px",
-      }}
-    >
+    <main className="login-page">
 
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          padding: "30px",
-          border: "1px solid #ddd",
-          borderRadius: "10px",
-        }}
-      >
+      {/* LEFT SIDE */}
 
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "25px",
-          }}
-        >
-          Login
-        </h1>
+      <section className="login-info">
+
+        {/* Logo */}
+
+        <Link href="/" className="brand">
+
+          <div className="brand-icon">
+            AI
+          </div>
+
+          <span>
+            AI Examination
+          </span>
+
+        </Link>
 
 
-        <form onSubmit={handleSubmit}>
+        {/* Left Content */}
 
-          {/* Email */}
-          <div style={{ marginBottom: "20px" }}>
+        <div className="login-info-content">
 
-            <label htmlFor="email">
-              Email
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              placeholder="Enter your email"
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "6px",
-                boxSizing: "border-box",
-              }}
-            />
-
+          <div className="info-badge">
+            Smart & Simple Examination Platform
           </div>
 
 
-          {/* Password */}
-          <div style={{ marginBottom: "20px" }}>
+          <h1>
+            Welcome
+            <br />
+            <span>back.</span>
+          </h1>
 
-            <label htmlFor="password">
-              Password
-            </label>
 
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
-              placeholder="Enter your password"
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "6px",
-                boxSizing: "border-box",
-              }}
-            />
+          <p className="login-description">
+            Sign in to continue your examination journey
+            and access everything you need in one place.
+          </p>
+
+
+          {/* Benefits */}
+
+          <div className="login-benefits">
+
+            <div className="login-benefit">
+
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
+              <div>
+                <strong>
+                  Safe & Secure
+                </strong>
+
+                <span>
+                  Your account information is kept safe and private.
+                </span>
+              </div>
+
+            </div>
+
+
+            <div className="login-benefit">
+
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
+              <div>
+                <strong>
+                  Everything in One Place
+                </strong>
+
+                <span>
+                  Access your examinations, results and activities easily.
+                </span>
+              </div>
+
+            </div>
+
+
+            <div className="login-benefit">
+
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
+              <div>
+                <strong>
+                  Easy to Use
+                </strong>
+
+                <span>
+                  A simple experience designed for everyone.
+                </span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* RIGHT SIDE */}
+
+      <section className="login-form-section">
+
+        <div className="login-card">
+
+          <div className="login-header">
+
+            <h2>
+              Welcome back
+            </h2>
+
+            <p>
+              Sign in to continue to your account.
+            </p>
 
           </div>
 
 
           {/* Error */}
+
           {error && (
-            <p
-              style={{
-                color: "red",
-                marginBottom: "15px",
-              }}
-            >
-              {error}
-            </p>
+            <div className="login-error">
+
+              <span className="error-icon">
+                !
+              </span>
+
+              <span>
+                {error}
+              </span>
+
+            </div>
           )}
 
 
-          {/* Login Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              cursor: loading
-                ? "not-allowed"
-                : "pointer",
-            }}
+          {/* Form */}
+
+          <form onSubmit={handleSubmit}>
+
+            {/* Email */}
+
+            <div className="login-form-group">
+
+              <label htmlFor="email">
+                Email Address
+              </label>
+
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+                placeholder="you@example.com"
+                required
+                disabled={loading}
+                autoComplete="email"
+              />
+
+            </div>
+
+
+            {/* Password */}
+
+            <div className="login-form-group">
+
+              <label htmlFor="password">
+                Password
+              </label>
+
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+                placeholder="Enter your password"
+                required
+                disabled={loading}
+                autoComplete="current-password"
+              />
+
+            </div>
+
+
+            {/* Remember */}
+
+            <div className="remember-row">
+
+              <label className="remember-label">
+
+                <input
+                  type="checkbox"
+                  disabled={loading}
+                />
+
+                <span>
+                  Remember me
+                </span>
+
+              </label>
+
+            </div>
+
+
+            {/* Login Button */}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="login-submit"
+            >
+
+              {loading
+                ? "Logging in..."
+                : "Sign In"}
+
+            </button>
+
+          </form>
+
+
+          {/* Register */}
+
+          <div className="register-text">
+
+            <span>
+              Don't have an account?
+            </span>
+
+            <Link href="/register">
+              Create an account
+            </Link>
+
+          </div>
+
+
+          {/* Home */}
+
+          <Link
+            href="/"
+            className="back-home"
           >
-            {loading
-              ? "Logging in..."
-              : "Login"}
-          </button>
+            ← Back to home
+          </Link>
 
-        </form>
+        </div>
 
-
-        {/* Register Link */}
-        <p
-          style={{
-            textAlign: "center",
-            marginTop: "20px",
-          }}
-        >
-          Don't have an account?{" "}
-
-          <a href="/register">
-            Register
-          </a>
-
-        </p>
-
-      </div>
+      </section>
 
     </main>
   );
