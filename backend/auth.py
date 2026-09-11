@@ -51,7 +51,7 @@ def verify_password(
 # ============================================================
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
+    tokenUrl="/auth/token"
 )
 
 

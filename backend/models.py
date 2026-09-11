@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -70,6 +69,108 @@ class Exam(Base):
     total_questions = Column(Integer, nullable=False)
 
     maximum_marks = Column(Integer, nullable=False)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    examiner_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    subject = Column(
+        String(100),
+        nullable=False
+    )
+
+    question_text = Column(
+        String(1000),
+        nullable=False
+    )
+
+    question_type = Column(
+        String(30),
+        nullable=False
+    )
+
+    difficulty = Column(
+        String(20),
+        nullable=False
+    )
+
+    option_a = Column(
+        String(500),
+        nullable=True
+    )
+
+    option_b = Column(
+        String(500),
+        nullable=True
+    )
+
+    option_c = Column(
+        String(500),
+        nullable=True
+    )
+
+    option_d = Column(
+        String(500),
+        nullable=True
+    )
+
+    correct_answer = Column(
+        String(500),
+        nullable=False
+    )
+
+    marks = Column(
+        Integer,
+        nullable=False
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+
+class ExamQuestion(Base):
+    __tablename__ = "exam_questions"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    exam_id = Column(
+        Integer,
+        ForeignKey("exams.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    question_order = Column(
+        Integer,
+        nullable=False
+    )
 
     created_at = Column(
         DateTime(timezone=True),

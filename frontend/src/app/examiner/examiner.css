@@ -1,0 +1,535 @@
+/* =========================
+   EXAMINER PAGE
+========================= */
+
+.examiner-page {
+  min-height: 100vh;
+  background: #f6f8fc;
+  color: #172033;
+}
+
+
+/* =========================
+   LOADING
+========================= */
+
+.examiner-loading {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f6f8fc;
+  color: #64748b;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.examiner-header {
+  height: 72px;
+
+  padding: 0 7%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: white;
+
+  border-bottom: 1px solid #e5e9f2;
+}
+
+.examiner-brand {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.examiner-brand-icon {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.examiner-brand h2 {
+  margin: 0;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.examiner-brand span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #8a94a6;
+
+  font-size: 11px;
+}
+
+
+/* =========================
+   HEADER RIGHT
+========================= */
+
+.examiner-header-right {
+  display: flex;
+  align-items: center;
+
+  gap: 22px;
+}
+
+.examiner-user {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.examiner-avatar {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #eaf1ff;
+
+  color: #2563eb;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.examiner-user strong {
+  display: block;
+
+  font-size: 13px;
+}
+
+.examiner-user span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #8a94a6;
+
+  font-size: 11px;
+}
+
+.logout-button {
+  padding: 9px 15px;
+
+  border: 1px solid #dce1ea;
+
+  border-radius: 8px;
+
+  background: white;
+
+  color: #52617a;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #f8fafc;
+
+  color: #2563eb;
+}
+
+
+/* =========================
+   CONTENT
+========================= */
+
+.examiner-content {
+  width: min(1180px, 90%);
+
+  margin: 0 auto;
+
+  padding: 48px 0 70px;
+}
+
+
+/* =========================
+   WELCOME
+========================= */
+
+.examiner-welcome {
+  margin-bottom: 42px;
+}
+
+.welcome-label {
+  margin: 0 0 8px;
+
+  color: #2563eb;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: 1px;
+}
+
+.examiner-welcome h1 {
+  margin: 0;
+
+  font-size: 34px;
+
+  line-height: 1.2;
+}
+
+.examiner-welcome p:last-child {
+  max-width: 650px;
+
+  margin: 10px 0 0;
+
+  color: #6b778c;
+
+  font-size: 15px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================
+   SECTION
+========================= */
+
+.dashboard-section {
+  margin-bottom: 42px;
+}
+
+.section-heading {
+  margin-bottom: 20px;
+}
+
+.section-heading h2 {
+  margin: 0;
+
+  font-size: 20px;
+}
+
+.section-heading p {
+  margin: 5px 0 0;
+
+  color: #7a8599;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   DASHBOARD GRID
+========================= */
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 20px;
+}
+
+
+/* =========================
+   DASHBOARD CARD
+========================= */
+
+.dashboard-card {
+  display: flex;
+
+  gap: 18px;
+
+  padding: 25px;
+
+  background: white;
+
+  border: 1px solid #e3e8f1;
+
+  border-radius: 15px;
+
+  box-shadow:
+    0 8px 25px rgba(30, 50, 90, 0.04);
+
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 12px 30px rgba(30, 50, 90, 0.08);
+}
+
+.dashboard-card-icon {
+  width: 48px;
+  height: 48px;
+
+  min-width: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #eef4ff;
+
+  font-size: 22px;
+}
+
+.dashboard-card-content {
+  flex: 1;
+}
+
+.dashboard-card h3 {
+  margin: 0;
+
+  font-size: 17px;
+}
+
+.dashboard-card p {
+  margin: 8px 0 18px;
+
+  color: #707b8f;
+
+  font-size: 13px;
+
+  line-height: 1.55;
+}
+
+
+/* =========================
+   CARD BUTTON
+========================= */
+
+.card-button {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 9px 13px;
+
+  border: 1px solid #dce2ec;
+
+  border-radius: 8px;
+
+  background: white;
+
+  color: #344054;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.card-button:hover {
+  border-color: #2563eb;
+
+  color: #2563eb;
+}
+
+.card-button.primary {
+  border-color: #2563eb;
+
+  background: #2563eb;
+
+  color: white;
+}
+
+.card-button.primary:hover {
+  background: #1d4ed8;
+}
+
+.card-button span {
+  font-size: 15px;
+}
+
+
+/* =========================
+   WORKFLOW
+========================= */
+
+.workflow-section {
+  padding: 28px;
+
+  background: white;
+
+  border: 1px solid #e3e8f1;
+
+  border-radius: 15px;
+}
+
+.workflow-header {
+  margin-bottom: 24px;
+}
+
+.workflow-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+}
+
+.workflow-header p {
+  margin: 5px 0 0;
+
+  color: #7a8599;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   WORKFLOW GRID
+========================= */
+
+.workflow-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.workflow-item {
+  padding: 18px;
+
+  border-radius: 11px;
+
+  background: #f8fafc;
+
+  border: 1px solid #edf0f5;
+}
+
+.workflow-number {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 12px;
+
+  border-radius: 50%;
+
+  background: #eaf1ff;
+
+  color: #2563eb;
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.workflow-item h3 {
+  margin: 0 0 6px;
+
+  font-size: 14px;
+}
+
+.workflow-item p {
+  margin: 0;
+
+  color: #7a8599;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+
+  .examiner-header {
+    padding: 0 20px;
+  }
+
+  .examiner-content {
+    width: calc(100% - 40px);
+  }
+
+  .workflow-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+@media (max-width: 650px) {
+
+  .examiner-header {
+    height: auto;
+
+    padding: 15px 20px;
+
+    gap: 15px;
+
+    align-items: flex-start;
+  }
+
+  .examiner-header-right {
+    gap: 10px;
+  }
+
+  .examiner-user {
+    display: none;
+  }
+
+  .examiner-content {
+    width: calc(100% - 30px);
+
+    padding-top: 30px;
+  }
+
+  .examiner-welcome h1 {
+    font-size: 28px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-section {
+    padding: 20px;
+  }
+
+}
+

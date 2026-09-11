@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-
+from typing import Optional
 
 class RegisterRequest(BaseModel):
     name: str = Field(
@@ -59,6 +59,51 @@ class ExamResponse(BaseModel):
     end_time: datetime
     total_questions: int
     maximum_marks: int
+
+    class Config:
+        from_attributes = True
+
+class QuestionCreate(BaseModel):
+    subject: str
+    question_text: str
+    question_type: str
+    difficulty: str
+    option_a: Optional[str] = None
+    option_b: Optional[str] = None
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    correct_answer: str
+    marks: int
+
+
+class QuestionResponse(BaseModel):
+    id: int
+    examiner_id: int
+    subject: str
+    question_text: str
+    question_type: str
+    difficulty: str
+    option_a: Optional[str] = None
+    option_b: Optional[str] = None
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    correct_answer: str
+    marks: int
+
+    class Config:
+        from_attributes = True
+
+
+class ExamQuestionCreate(BaseModel):
+    exam_id: int
+    question_ids: list[int]
+
+
+class ExamQuestionResponse(BaseModel):
+    id: int
+    exam_id: int
+    question_id: int
+    question_order: int
 
     class Config:
         from_attributes = True

@@ -1,3 +1,4 @@
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -229,6 +230,92 @@ def login(
     # --------------------------------------------------------
     # 8. Return JWT
     # --------------------------------------------------------
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role
+    }
+
+# ============================================================
+# SWAGGER LOGIN
+# ============================================================
+
+@router.post(
+    "/token",
+    response_model=TokenResponse
+)
+def swagger_login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+
+    # Find user using email entered in Swagger "username"
+    user = (
+        db.query(User)
+        .filter(User.email == form_data.username)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Verify password
+    if not verify_password(
+        form_data.password,
+        user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    # Examiner approval check
+    if user.role == "examiner":
+
+        if user.status == "pending":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your examiner account is waiting for Admin approval"
+            )
+
+        if user.status == "rejected":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your examiner registration was rejected by Admin"
+            )
+
+        if user.status != "approved":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your examiner account is not approved"
+            )
+
+    # Admin check
+    if user.role == "admin":
+
+        if user.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin account is inactive"
+            )
+
+    # Student check
+    if user.role == "student":
+
+        if user.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Student account is inactive"
+            )
+
+    access_token = create_access_token(
+        user_id=user.id,
+        role=user.role
+    )
 
     return {
         "access_token": access_token,
