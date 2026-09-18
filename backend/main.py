@@ -9,6 +9,8 @@ from routers.auth import router as auth_router
 
 from routers.exams import router as exams_router
 
+from routers.student_exams import router as student_exams_router
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -33,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(exams_router)
+app.include_router(student_exams_router)
 
 
 @app.get("/")

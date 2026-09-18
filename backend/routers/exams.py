@@ -910,3 +910,197 @@ def get_exam_questions(
     )
 
     return exam_questions
+
+@router.patch(
+    "/{exam_id}/publish",
+    response_model=ExamResponse
+)
+def publish_exam(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can publish examinations"
+        )
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found"
+        )
+
+    exam.is_published = True
+
+    db.commit()
+    db.refresh(exam)
+
+    return exam
+
+
+@router.patch(
+    "/{exam_id}/unpublish",
+    response_model=ExamResponse
+)
+def unpublish_exam(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can unpublish examinations"
+        )
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found"
+        )
+
+    exam.is_published = False
+
+    db.commit()
+    db.refresh(exam)
+
+    return exam
+
+# @router.get(
+#     "/student/exams",
+#     response_model=list[ExamResponse]
+# )
+# def get_student_exams(
+#     db: Session = Depends(get_db),
+#     current_user=Depends(get_current_user)
+# ):
+#     if current_user.role != "student":
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Only students can view examinations"
+#         )
+
+#     exams = (
+#         db.query(Exam)
+#         .filter(
+#             Exam.is_published == True
+#         )
+#         .order_by(
+#             Exam.start_time.asc()
+#         )
+#         .all()
+#     )
+
+#     return exams
+
+# @router.get("/student/{exam_id}")
+# def get_student_exam(
+#     exam_id: int,
+#     db: Session = Depends(get_db),
+#     current_user=Depends(get_current_user)
+# ):
+
+#     if current_user.role != "student":
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Only students can access examinations"
+#         )
+
+#     exam = (
+#         db.query(Exam)
+#         .filter(
+#             Exam.id == exam_id,
+#             Exam.is_published == True
+#         )
+#         .first()
+#     )
+
+#     if not exam:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="Examination not found or not published"
+#         )
+
+#     exam_questions = (
+#         db.query(ExamQuestion)
+#         .filter(
+#             ExamQuestion.exam_id == exam_id
+#         )
+#         .order_by(
+#             ExamQuestion.question_order
+#         )
+#         .all()
+#     )
+
+#     questions = []
+
+#     for item in exam_questions:
+
+#         question = (
+#             db.query(Question)
+#             .filter(
+#                 Question.id == item.question_id
+#             )
+#             .first()
+#         )
+
+#         if question:
+#             questions.append(question)
+
+#     return {
+#         "exam": exam,
+#         "questions": questions
+#     }
+
+# @router.get(
+#     "/available",
+#     response_model=list[ExamResponse]
+# )
+# def get_available_exams(
+#     db: Session = Depends(get_db),
+#     current_user=Depends(get_current_user)
+# ):
+#     if current_user.role != "student":
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Only students can view available examinations"
+#         )
+
+#     from datetime import datetime
+
+#     now = datetime.now()
+
+#     exams = (
+#         db.query(Exam)
+#         .filter(
+#             Exam.is_published == True,
+#             Exam.start_time <= now,
+#             Exam.end_time >= now
+#         )
+#         .order_by(Exam.start_time.asc())
+#         .all()
+#     )
+
+#     return exams

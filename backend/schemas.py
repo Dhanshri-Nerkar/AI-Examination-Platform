@@ -59,9 +59,34 @@ class ExamResponse(BaseModel):
     end_time: datetime
     total_questions: int
     maximum_marks: int
+    is_published: bool
 
     class Config:
         from_attributes = True
+
+class StudentExamResponse(BaseModel):
+    id: int
+    examiner_id: int
+    exam_name: str
+    subject: str
+    duration_minutes: int
+    start_time: datetime
+    end_time: datetime
+    total_questions: int
+    maximum_marks: int
+    is_published: bool
+
+    attempt_id: Optional[int] = None
+    attempt_status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class StudentExamListResponse(BaseModel):
+    available: list[StudentExamResponse]
+    completed: list[StudentExamResponse]
+
 
 class QuestionCreate(BaseModel):
     subject: str
@@ -107,3 +132,56 @@ class ExamQuestionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ExamStartResponse(BaseModel):
+    attempt_id: int
+    exam_id: int
+    started_at: datetime
+    status: str
+
+
+class StudentQuestionResponse(BaseModel):
+    id: int
+    question_text: str
+    question_type: str
+    difficulty: str
+    option_a: Optional[str] = None
+    option_b: Optional[str] = None
+    option_c: Optional[str] = None
+    option_d: Optional[str] = None
+    marks: int
+
+
+class StudentExamPaperResponse(BaseModel):
+    attempt_id: int
+    exam_id: int
+    exam_name: str
+    subject: str
+    duration_minutes: int
+    maximum_marks: int
+    started_at: datetime
+    questions: list[StudentQuestionResponse]
+
+
+class StudentAnswerCreate(BaseModel):
+    attempt_id: int
+    question_id: int
+    selected_answer: Optional[str] = None
+
+
+class ExamSubmitResponse(BaseModel):
+    attempt_id: int
+    exam_id: int
+    score: int
+    maximum_marks: int
+    correct_answers: int
+    wrong_answers: int
+    unanswered: int
+    submitted_at: datetime
+    status: str

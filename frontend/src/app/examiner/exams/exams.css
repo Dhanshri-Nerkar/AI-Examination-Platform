@@ -341,3 +341,56 @@
     flex-direction: column;
   }
 }
+
+
+.exam-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.publish-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+
+.publish-status.published {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.publish-status.unpublished {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.publish-button,
+.unpublish-button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.publish-button {
+  background: #2563eb;
+  color: white;
+}
+
+.publish-button:hover {
+  background: #1d4ed8;
+}
+
+.unpublish-button {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.unpublish-button:hover {
+  background: #fecaca;
+}

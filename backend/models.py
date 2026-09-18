@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from database import Base
 
@@ -69,6 +69,8 @@ class Exam(Base):
     total_questions = Column(Integer, nullable=False)
 
     maximum_marks = Column(Integer, nullable=False)
+
+    is_published = Column(Boolean, nullable=False,default=False)
 
     created_at = Column(
         DateTime(timezone=True),
@@ -175,4 +177,79 @@ class ExamQuestion(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()
+    )
+
+
+class ExamAttempt(Base):
+    __tablename__ = "exam_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    exam_id = Column(
+        Integer,
+        ForeignKey("exams.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    student_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    started_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    submitted_at = Column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+
+    status = Column(
+        String(20),
+        nullable=False,
+        default="in_progress"
+    )
+
+    score = Column(
+        Integer,
+        nullable=True,
+        default=0
+    )
+
+
+class StudentAnswer(Base):
+    __tablename__ = "student_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    attempt_id = Column(
+        Integer,
+        ForeignKey("exam_attempts.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    selected_answer = Column(
+        String(500),
+        nullable=True
+    )
+
+    is_correct = Column(
+        Boolean,
+        nullable=True
+    )
+
+    marks_awarded = Column(
+        Integer,
+        nullable=False,
+        default=0
     )
