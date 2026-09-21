@@ -1,25 +1,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import "./admin.css";
 
 const API_URL = "http://127.0.0.1:8000";
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
+  const [stats, setStats] = useState(null);
   const [examiners, setExaminers] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingExaminers, setLoadingExaminers] = useState(true);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   // ============================================================
-  // GET PENDING EXAMINERS
+  // GET TOKEN
+  // ============================================================
+
+  const getToken = () => {
+    return localStorage.getItem("access_token");
+  };
+
+  // ============================================================
+  // LOAD DASHBOARD STATISTICS
+  // ============================================================
+
+  const loadStats = async () => {
+    try {
+      setLoadingStats(true);
+      setError("");
+
+      const token = getToken();
+
+      if (!token) {
+        setError("Admin login required.");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/admin/dashboard/stats`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Failed to load dashboard statistics."
+        );
+      }
+
+      setStats(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  // ============================================================
+  // LOAD PENDING EXAMINERS
   // ============================================================
 
   const loadPendingExaminers = async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoadingExaminers(true);
 
-      const token = localStorage.getItem("access_token");
+      const token = getToken();
 
       if (!token) {
         setError("Admin login required.");
@@ -32,36 +92,50 @@ export default function AdminDashboard() {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
+          cache: "no-store",
         }
       );
 
-      if (!response.ok) {
-        const data = await response.json();
+      const data = await response.json();
 
+      if (!response.ok) {
         throw new Error(
-          data.detail || "Failed to load examiner requests"
+          data.detail || "Failed to load examiner requests."
         );
       }
 
-      const data = await response.json();
-
       setExaminers(data);
     } catch (err) {
+      console.error(err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      setLoadingExaminers(false);
     }
   };
 
   // ============================================================
-  // LOAD WHEN PAGE OPENS
+  // LOAD DASHBOARD
   // ============================================================
 
   useEffect(() => {
+    loadStats();
     loadPendingExaminers();
   }, []);
+
+  // ============================================================
+  // REFRESH
+  // ============================================================
+
+  const refreshDashboard = async () => {
+    setMessage("");
+    setError("");
+
+    await Promise.all([
+      loadStats(),
+      loadPendingExaminers(),
+    ]);
+  };
 
   // ============================================================
   // APPROVE EXAMINER
@@ -72,7 +146,7 @@ export default function AdminDashboard() {
       setMessage("");
       setError("");
 
-      const token = localStorage.getItem("access_token");
+      const token = getToken();
 
       const response = await fetch(
         `${API_URL}/admin/examiners/${id}/approve`,
@@ -80,7 +154,6 @@ export default function AdminDashboard() {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         }
       );
@@ -89,17 +162,21 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Failed to approve examiner"
+          data.detail || "Failed to approve examiner."
         );
       }
 
       setMessage("Examiner approved successfully.");
 
-      // Remove approved examiner from pending list
       setExaminers((previous) =>
-        previous.filter((examiner) => examiner.id !== id)
+        previous.filter(
+          (examiner) => examiner.id !== id
+        )
       );
+
+      loadStats();
     } catch (err) {
+      console.error(err);
       setError(err.message);
     }
   };
@@ -113,7 +190,7 @@ export default function AdminDashboard() {
       setMessage("");
       setError("");
 
-      const token = localStorage.getItem("access_token");
+      const token = getToken();
 
       const response = await fetch(
         `${API_URL}/admin/examiners/${id}/reject`,
@@ -121,7 +198,6 @@ export default function AdminDashboard() {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         }
       );
@@ -130,262 +206,551 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Failed to reject examiner"
+          data.detail || "Failed to reject examiner."
         );
       }
 
       setMessage("Examiner rejected.");
 
-      // Remove rejected examiner from pending list
       setExaminers((previous) =>
-        previous.filter((examiner) => examiner.id !== id)
+        previous.filter(
+          (examiner) => examiner.id !== id
+        )
       );
+
+      loadStats();
     } catch (err) {
+      console.error(err);
       setError(err.message);
     }
   };
+
+  // ============================================================
+  // SCROLL TO REQUESTS
+  // ============================================================
+
+  const goToRequests = () => {
+    document
+      .getElementById("examiner-requests")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  };
+
+  // ============================================================
+  // LOADING
+  // ============================================================
+
+  if (loadingStats && !stats) {
+    return (
+      <main className="admin-page">
+        <div className="admin-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading Admin Dashboard...</p>
+        </div>
+      </main>
+    );
+  }
 
   // ============================================================
   // UI
   // ============================================================
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f4f6f8",
-        padding: "40px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1000px",
-          margin: "0 auto",
-        }}
-      >
-        {/* HEADER */}
+    <main className="admin-page">
+      <div className="admin-container">
 
-        <div
-          style={{
-            background: "white",
-            padding: "25px",
-            borderRadius: "12px",
-            marginBottom: "25px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "30px",
-            }}
+        {/* ======================================================
+            HEADER
+        ====================================================== */}
+
+        <header className="admin-header">
+          <div>
+            <p className="admin-eyebrow">
+              ADMINISTRATION
+            </p>
+
+            <h1>
+              Admin Dashboard
+            </h1>
+
+            <p className="admin-subtitle">
+              Manage users, examinations and platform
+              activity from one place.
+            </p>
+          </div>
+
+          <button
+            className="refresh-button"
+            onClick={refreshDashboard}
           >
-            Admin Dashboard
-          </h1>
+            ↻ Refresh
+          </button>
+        </header>
 
-          <p
-            style={{
-              color: "#666",
-              marginBottom: 0,
-            }}
-          >
-            Manage examiner registration requests.
-          </p>
-        </div>
-
-        {/* SUCCESS MESSAGE */}
+        {/* ======================================================
+            MESSAGES
+        ====================================================== */}
 
         {message && (
-          <div
-            style={{
-              background: "#d1fae5",
-              color: "#065f46",
-              padding: "15px",
-              borderRadius: "8px",
-              marginBottom: "20px",
-            }}
-          >
+          <div className="success-message">
+            <span>✓</span>
             {message}
           </div>
         )}
 
-        {/* ERROR MESSAGE */}
-
         {error && (
-          <div
-            style={{
-              background: "#fee2e2",
-              color: "#991b1b",
-              padding: "15px",
-              borderRadius: "8px",
-              marginBottom: "20px",
-            }}
-          >
+          <div className="error-message">
+            <span>!</span>
             {error}
           </div>
         )}
 
-        {/* PENDING EXAMINERS */}
+        {/* ======================================================
+            STATISTICS
+        ====================================================== */}
 
-        <div
-          style={{
-            background: "white",
-            padding: "25px",
-            borderRadius: "12px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-            }}
-          >
-            <h2 style={{ margin: 0 }}>
-              Pending Examiner Requests
-            </h2>
+        {stats && (
+          <section className="stats-section">
 
-            <button
-              onClick={loadPendingExaminers}
-              style={{
-                padding: "9px 16px",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                background: "#2563eb",
-                color: "white",
-              }}
-            >
-              Refresh
-            </button>
+            <div className="stat-card">
+              <div className="stat-icon students">
+                👨‍🎓
+              </div>
+
+              <div>
+                <p>Total Students</p>
+                <h2>
+                  {stats.users.total_students}
+                </h2>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon examiners">
+                👨‍🏫
+              </div>
+
+              <div>
+                <p>Total Examiners</p>
+                <h2>
+                  {stats.users.total_examiners}
+                </h2>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon pending">
+                ⏳
+              </div>
+
+              <div>
+                <p>Pending Requests</p>
+                <h2>
+                  {stats.users.pending_examiners}
+                </h2>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-icon exams">
+                📝
+              </div>
+
+              <div>
+                <p>Total Examinations</p>
+                <h2>
+                  {stats.examinations.total_exams}
+                </h2>
+              </div>
+            </div>
+
+          </section>
+        )}
+
+        {/* ======================================================
+            QUICK ACTIONS
+        ====================================================== */}
+
+        <section className="quick-actions-section">
+
+          <div className="section-heading">
+            <div>
+              <p className="section-eyebrow">
+                MANAGEMENT
+              </p>
+
+              <h2>
+                Quick Actions
+              </h2>
+
+              <p>
+                Access the main administration areas.
+              </p>
+            </div>
           </div>
 
-          {loading ? (
-            <p>Loading examiner requests...</p>
-          ) : examiners.length === 0 ? (
-            <div
-              style={{
-                padding: "30px",
-                textAlign: "center",
-                background: "#f8fafc",
-                borderRadius: "8px",
-                color: "#64748b",
-              }}
+          <div className="quick-actions-grid">
+
+            {/* USERS */}
+
+            <button
+              className="action-card"
+              onClick={() => router.push("/admin/users")}
             >
-              No pending examiner requests.
+              <div className="action-icon users-action">
+                👥
+              </div>
+
+              <div className="action-content">
+                <h3>
+                  Manage Users
+                </h3>
+
+                <p>
+                  View students, examiners and administrators.
+                </p>
+              </div>
+
+              <span className="action-arrow">
+                →
+              </span>
+            </button>
+
+            {/* EXAMINER REQUESTS */}
+
+            <button
+              className="action-card"
+              onClick={goToRequests}
+            >
+              <div className="action-icon requests-action">
+                ⏳
+              </div>
+
+              <div className="action-content">
+                <h3>
+                  Examiner Requests
+                </h3>
+
+                <p>
+                  Review pending examiner registrations.
+                </p>
+              </div>
+
+              <span className="action-arrow">
+                →
+              </span>
+            </button>
+
+            {/* EXAMINATIONS */}
+
+            <button
+  className="action-card"
+  onClick={() => router.push("/admin/exams")}
+>
+  <div className="action-icon exams-action">
+    📋
+  </div>
+
+  <div className="action-content">
+    <h3>
+      Examination Management
+    </h3>
+
+    <p>
+      Monitor examinations, schedules and student activity.
+    </p>
+  </div>
+
+  <span className="action-arrow">
+    →
+  </span>
+</button>
+
+          </div>
+        </section>
+
+        {/* ======================================================
+            PLATFORM OVERVIEW
+        ====================================================== */}
+
+        {stats && (
+          <section className="overview-section">
+
+            <div className="section-heading">
+              <div>
+                <p className="section-eyebrow">
+                  PLATFORM
+                </p>
+
+                <h2>
+                  System Overview
+                </h2>
+              </div>
             </div>
-          ) : (
+
+            <div className="overview-grid">
+
+              {/* USERS */}
+
+              <div className="overview-card">
+
+                <div className="overview-card-header">
+                  <span className="overview-icon">
+                    👥
+                  </span>
+
+                  <h3>
+                    Users
+                  </h3>
+                </div>
+
+                <div className="overview-row">
+                  <span>Students</span>
+
+                  <strong>
+                    {stats.users.total_students}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Examiners</span>
+
+                  <strong>
+                    {stats.users.total_examiners}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Approved Examiners</span>
+
+                  <strong>
+                    {stats.users.approved_examiners}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Pending Requests</span>
+
+                  <strong className="warning-text">
+                    {stats.users.pending_examiners}
+                  </strong>
+                </div>
+
+              </div>
+
+              {/* EXAMINATIONS */}
+
+              <div className="overview-card">
+
+                <div className="overview-card-header">
+                  <span className="overview-icon">
+                    📋
+                  </span>
+
+                  <h3>
+                    Examinations
+                  </h3>
+                </div>
+
+                <div className="overview-row">
+                  <span>Total Exams</span>
+
+                  <strong>
+                    {stats.examinations.total_exams}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Published</span>
+
+                  <strong className="success-text">
+                    {stats.examinations.published_exams}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Unpublished</span>
+
+                  <strong>
+                    {stats.examinations.unpublished_exams}
+                  </strong>
+                </div>
+
+              </div>
+
+              {/* ACTIVITY */}
+
+              <div className="overview-card">
+
+                <div className="overview-card-header">
+                  <span className="overview-icon">
+                    📊
+                  </span>
+
+                  <h3>
+                    Examination Activity
+                  </h3>
+                </div>
+
+                <div className="overview-row">
+                  <span>Total Attempts</span>
+
+                  <strong>
+                    {stats.attempts.total_attempts}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>Submitted</span>
+
+                  <strong className="success-text">
+                    {stats.attempts.submitted_attempts}
+                  </strong>
+                </div>
+
+                <div className="overview-row">
+                  <span>In Progress</span>
+
+                  <strong className="warning-text">
+                    {stats.attempts.in_progress_attempts}
+                  </strong>
+                </div>
+
+              </div>
+
+            </div>
+          </section>
+        )}
+
+        {/* ======================================================
+            EXAMINER REQUESTS
+        ====================================================== */}
+
+        <section
+          className="requests-section"
+          id="examiner-requests"
+        >
+
+          <div className="section-heading">
+
             <div>
+              <p className="section-eyebrow">
+                USER MANAGEMENT
+              </p>
+
+              <h2>
+                Examiner Registration Requests
+              </h2>
+
+              <p>
+                Review and manage examiner registration
+                requests.
+              </p>
+            </div>
+
+            <div className="pending-count">
+              {examiners.length} Pending
+            </div>
+
+          </div>
+
+          {loadingExaminers ? (
+            <div className="section-loading">
+              <div className="loading-spinner small"></div>
+
+              <p>
+                Loading examiner requests...
+              </p>
+            </div>
+          ) : examiners.length === 0 ? (
+
+            <div className="empty-state">
+
+              <div className="empty-icon">
+                ✓
+              </div>
+
+              <h3>
+                No Pending Requests
+              </h3>
+
+              <p>
+                There are currently no examiner
+                registration requests waiting for review.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="examiner-list">
+
               {examiners.map((examiner) => (
+
                 <div
+                  className="examiner-card"
                   key={examiner.id}
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "10px",
-                    padding: "20px",
-                    marginBottom: "15px",
-                  }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "20px",
-                    }}
-                  >
+
+                  <div className="examiner-info">
+
+                    <div className="examiner-avatar">
+                      {examiner.name
+                        ?.charAt(0)
+                        ?.toUpperCase()}
+                    </div>
+
                     <div>
-                      <h3
-                        style={{
-                          margin: "0 0 8px 0",
-                        }}
-                      >
+
+                      <h3>
                         {examiner.name}
                       </h3>
 
-                      <p
-                        style={{
-                          margin: "4px 0",
-                          color: "#555",
-                        }}
-                      >
-                        Email: {examiner.email}
+                      <p>
+                        {examiner.email}
                       </p>
 
-                      <p
-                        style={{
-                          margin: "4px 0",
-                          color: "#555",
-                        }}
-                      >
-                        Role: {examiner.role}
-                      </p>
-
-                      <span
-                        style={{
-                          display: "inline-block",
-                          marginTop: "8px",
-                          padding: "5px 10px",
-                          borderRadius: "20px",
-                          background: "#fef3c7",
-                          color: "#92400e",
-                          fontSize: "13px",
-                        }}
-                      >
-                        Pending
+                      <span className="pending-badge">
+                        Pending Review
                       </span>
+
                     </div>
 
-                    {/* BUTTONS */}
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "10px",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          approveExaminer(examiner.id)
-                        }
-                        style={{
-                          padding: "10px 18px",
-                          border: "none",
-                          borderRadius: "6px",
-                          background: "#16a34a",
-                          color: "white",
-                          cursor: "pointer",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          rejectExaminer(examiner.id)
-                        }
-                        style={{
-                          padding: "10px 18px",
-                          border: "none",
-                          borderRadius: "6px",
-                          background: "#dc2626",
-                          color: "white",
-                          cursor: "pointer",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        Reject
-                      </button>
-                    </div>
                   </div>
+
+                  <div className="examiner-actions">
+
+                    <button
+                      className="approve-button"
+                      onClick={() =>
+                        approveExaminer(examiner.id)
+                      }
+                    >
+                      ✓ Approve
+                    </button>
+
+                    <button
+                      className="reject-button"
+                      onClick={() =>
+                        rejectExaminer(examiner.id)
+                      }
+                    >
+                      ✕ Reject
+                    </button>
+
+                  </div>
+
                 </div>
+
               ))}
+
             </div>
           )}
-        </div>
+
+        </section>
+
       </div>
     </main>
   );
