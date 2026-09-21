@@ -12,6 +12,10 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
 
   const [adminName, setAdminName] = useState("Administrator");
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // 👇 Live pending count for the badge
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -22,201 +26,222 @@ export default function AdminLayout({ children }) {
       return;
     }
 
-    // Try to get admin information from localStorage
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
-
-        if (user?.name) {
-          setAdminName(user.name);
-        }
+        if (user?.name) setAdminName(user.name);
       } catch (error) {
-        console.error(
-          "Unable to read stored user.",
-          error
-        );
+        console.error("Unable to read stored user.", error);
       }
     }
+
+    // Fetch pending count for badge
+    fetch(`${API_URL}/admin/examiners/pending`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setPendingCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => setPendingCount(0));
   }, [router]);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("role");
     localStorage.removeItem("user");
-
     router.replace("/login");
   };
 
   const isActive = (path) => {
-    if (path === "/admin") {
-      return pathname === "/admin";
-    }
+    if (path === "/admin") return pathname === "/admin";
+    return pathname === path || pathname.startsWith(`${path}/`);
+  };
 
-    return (
-      pathname === path ||
-      pathname.startsWith(`${path}/`)
-    );
+  // Scroll to examiner requests (if on dashboard) or navigate to /admin
+  const goToExaminerRequests = () => {
+    if (pathname === "/admin") {
+      document
+        .getElementById("examiner-requests")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      router.push("/admin#examiner-requests");
+    }
+  };
+
+  const navItems = [
+    { label: "Dashboard", path: "/admin", icon: "◉", action: "push" },
+    { label: "Users", path: "/admin/users", icon: "👥", action: "push" },
+    { label: "Examinations", path: "/admin/exams", icon: "📋", action: "push" },
+    {
+      label: "Examiner Requests",
+      path: "/admin#examiner-requests",
+      icon: "⏳",
+      action: "scroll",
+      badge: pendingCount,
+    },
+  ];
+
+  const handleNavClick = (item) => {
+    if (item.action === "scroll") {
+      goToExaminerRequests();
+    } else {
+      router.push(item.path);
+    }
   };
 
   return (
-    <div className="admin-layout">
+    <div className="admin-shell">
 
-      {/* ================================================== */}
-      {/* SIDEBAR */}
-      {/* ================================================== */}
+      <header className="admin-topbar">
 
-      <aside className="admin-sidebar">
+        <div className="admin-topbar-inner">
 
-        {/* BRAND */}
-
-        <div className="admin-brand">
-          <div className="admin-brand-icon">
-            AI
-          </div>
-
-          <div>
-            <h2>AI Examination</h2>
-            <span>Administration</span>
-          </div>
-        </div>
-
-        {/* NAVIGATION */}
-
-        <nav className="admin-navigation">
-
-          <p className="admin-nav-label">
-            MAIN MENU
-          </p>
-
-          <button
-            className={`admin-nav-item ${
-              isActive("/admin")
-                ? "admin-nav-active"
-                : ""
-            }`}
-            onClick={() =>
-              router.push("/admin")
-            }
+          {/* BRAND */}
+          <div
+            className="admin-topbar-brand"
+            onClick={() => router.push("/admin")}
           >
-            <span className="admin-nav-icon">
-              ◉
-            </span>
-
-            <span>Dashboard</span>
-          </button>
-
-          <button
-            className={`admin-nav-item ${
-              isActive("/admin/users")
-                ? "admin-nav-active"
-                : ""
-            }`}
-            onClick={() =>
-              router.push("/admin/users")
-            }
-          >
-            <span className="admin-nav-icon">
-              👥
-            </span>
-
-            <span>Users</span>
-          </button>
-
-          <button
-            className={`admin-nav-item ${
-              isActive("/admin/exams")
-                ? "admin-nav-active"
-                : ""
-            }`}
-            onClick={() =>
-              router.push("/admin/exams")
-            }
-          >
-            <span className="admin-nav-icon">
-              📋
-            </span>
-
-            <span>Examinations</span>
-          </button>
-
-        </nav>
-
-        {/* BOTTOM AREA */}
-
-        <div className="admin-sidebar-bottom">
-
-          <div className="admin-user-card">
-
-            <div className="admin-user-avatar">
-              {adminName
-                ?.charAt(0)
-                ?.toUpperCase() || "A"}
+            <div className="admin-topbar-logo">
+              <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="adminTopbarGrad" x1="0" y1="0" x2="40" y2="40">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="100%" stopColor="#60a5fa" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
+                  fill="url(#adminTopbarGrad)"
+                />
+                <text
+                  x="20"
+                  y="25"
+                  textAnchor="middle"
+                  fontSize="13"
+                  fontWeight="800"
+                  fill="white"
+                  fontFamily="system-ui, sans-serif"
+                  letterSpacing="0.5"
+                >
+                  AI
+                </text>
+              </svg>
             </div>
 
-            <div className="admin-user-info">
-              <strong>
-                {adminName}
-              </strong>
-
-              <span>
-                Administrator
-              </span>
+            <div className="admin-topbar-brand-text">
+              <strong>AI Examination</strong>
+              <span>Admin</span>
             </div>
-
           </div>
 
+
+          {/* DESKTOP NAV LINKS */}
+          <nav className="admin-topbar-nav">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                className={`admin-topbar-link ${
+                  isActive(item.path.split("#")[0]) ? "active" : ""
+                }`}
+                onClick={() => handleNavClick(item)}
+              >
+                <span className="admin-topbar-icon">{item.icon}</span>
+                {item.label}
+
+                {item.badge > 0 && (
+                  <span className="admin-topbar-badge">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+
+          {/* RIGHT — user + logout */}
+          <div className="admin-topbar-user">
+            <div className="admin-topbar-avatar">
+              {adminName?.charAt(0)?.toUpperCase() || "A"}
+            </div>
+
+            <div className="admin-topbar-user-info">
+              <strong>{adminName}</strong>
+              <span>Administrator</span>
+            </div>
+
+            <button className="admin-topbar-logout" onClick={handleLogout}>
+              ↪ Logout
+            </button>
+          </div>
+
+
+          {/* MOBILE HAMBURGER */}
           <button
-            className="admin-logout-button"
-            onClick={handleLogout}
+            className="admin-topbar-hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
           >
-            <span>↪</span>
-            Logout
+            {menuOpen ? "✕" : "☰"}
           </button>
 
         </div>
 
-      </aside>
 
-      {/* ================================================== */}
-      {/* MAIN CONTENT */}
-      {/* ================================================== */}
+        {/* MOBILE MENU DRAWER */}
+        {menuOpen && (
+          <div className="admin-mobile-menu">
 
-      <div className="admin-main">
+            <nav className="admin-mobile-links">
+              {navItems.map((item) => (
+                <button
+                  key={item.label}
+                  className={`admin-mobile-link ${
+                    isActive(item.path.split("#")[0]) ? "active" : ""
+                  }`}
+                  onClick={() => handleNavClick(item)}
+                >
+                  <span>{item.icon}</span>
+                  {item.label}
 
-        {/* MOBILE TOP BAR */}
+                  {item.badge > 0 && (
+                    <span className="admin-topbar-badge">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
 
-        <div className="admin-mobile-header">
-
-          <div className="admin-mobile-brand">
-            <div className="admin-brand-icon">
-              AI
+            <div className="admin-mobile-user">
+              <div className="admin-topbar-avatar">
+                {adminName?.charAt(0)?.toUpperCase() || "A"}
+              </div>
+              <div className="admin-topbar-user-info">
+                <strong>{adminName}</strong>
+                <span>Administrator</span>
+              </div>
             </div>
 
-            <div>
-              <strong>
-                AI Examination
-              </strong>
+            <button className="admin-mobile-logout" onClick={handleLogout}>
+              ↪ Logout
+            </button>
 
-              <span>
-                Admin
-              </span>
-            </div>
           </div>
+        )}
 
-          <button
-            className="admin-mobile-logout"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
+      </header>
 
-        </div>
 
+      <main className="admin-shell-main">
         {children}
-
-      </div>
+      </main>
 
     </div>
   );

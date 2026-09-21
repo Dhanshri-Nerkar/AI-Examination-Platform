@@ -177,15 +177,6 @@ export default function AdminExamDetails() {
 
           <div>
 
-            <button
-              className="back-button"
-              onClick={() =>
-                router.push("/admin/exams")
-              }
-            >
-              ← Back to Examinations
-            </button>
-
             <p className="details-eyebrow">
               EXAMINATION DETAILS
             </p>
@@ -225,7 +216,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 
@@ -305,7 +296,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 
@@ -396,7 +387,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 
@@ -443,7 +434,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 
@@ -510,7 +501,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 
@@ -695,7 +686,7 @@ export default function AdminExamDetails() {
 
         <section className="details-section">
 
-          <div className="section-heading">
+          <div className="admin-details-heading">
 
             <div>
 

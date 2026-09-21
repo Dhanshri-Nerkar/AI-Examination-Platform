@@ -66,39 +66,56 @@ export default function LoginPage() {
     <main className="login-page">
 
       {/* LEFT SIDE */}
-
       <section className="login-info">
 
         {/* Logo */}
-
         <Link href="/" className="brand">
 
-          <div className="brand-icon">
-            AI
+          <div className="brand-mark">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="loginLogoGrad" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0%" stopColor="#2563eb" />
+                  <stop offset="100%" stopColor="#60a5fa" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
+                fill="url(#loginLogoGrad)"
+              />
+              <text
+                x="20"
+                y="25"
+                textAnchor="middle"
+                fontSize="13"
+                fontWeight="800"
+                fill="white"
+                fontFamily="system-ui, sans-serif"
+                letterSpacing="0.5"
+              >
+                AI
+              </text>
+            </svg>
           </div>
 
-          <span>
-            AI Examination
-          </span>
+          <span>AI Examination</span>
 
         </Link>
 
 
         {/* Left Content */}
-
         <div className="login-info-content">
 
           <div className="info-badge">
+            <span className="badge-dot" />
             Smart & Simple Examination Platform
           </div>
-
 
           <h1>
             Welcome
             <br />
             <span>back.</span>
           </h1>
-
 
           <p className="login-description">
             Sign in to continue your examination journey
@@ -107,63 +124,30 @@ export default function LoginPage() {
 
 
           {/* Benefits */}
-
           <div className="login-benefits">
 
             <div className="login-benefit">
-
-              <div className="login-benefit-icon">
-                ✓
-              </div>
-
+              <div className="login-benefit-icon">✓</div>
               <div>
-                <strong>
-                  Safe & Secure
-                </strong>
-
-                <span>
-                  Your account information is kept safe and private.
-                </span>
+                <strong>Safe & Secure</strong>
+                <span>Your account information is kept safe and private.</span>
               </div>
-
             </div>
 
-
             <div className="login-benefit">
-
-              <div className="login-benefit-icon">
-                ✓
-              </div>
-
+              <div className="login-benefit-icon">✓</div>
               <div>
-                <strong>
-                  Everything in One Place
-                </strong>
-
-                <span>
-                  Access your examinations, results and activities easily.
-                </span>
+                <strong>Everything in One Place</strong>
+                <span>Access your examinations, results and activities easily.</span>
               </div>
-
             </div>
 
-
             <div className="login-benefit">
-
-              <div className="login-benefit-icon">
-                ✓
-              </div>
-
+              <div className="login-benefit-icon">✓</div>
               <div>
-                <strong>
-                  Easy to Use
-                </strong>
-
-                <span>
-                  A simple experience designed for everyone.
-                </span>
+                <strong>Easy to Use</strong>
+                <span>A simple experience designed for everyone.</span>
               </div>
-
             </div>
 
           </div>
@@ -174,151 +158,84 @@ export default function LoginPage() {
 
 
       {/* RIGHT SIDE */}
-
       <section className="login-form-section">
 
         <div className="login-card">
 
           <div className="login-header">
-
-            <h2>
-              Welcome back
-            </h2>
-
-            <p>
-              Sign in to continue to your account.
-            </p>
-
+            <h2>Welcome back</h2>
+            <p>Sign in to continue to your account.</p>
           </div>
 
 
           {/* Error */}
-
           {error && (
             <div className="login-error">
-
-              <span className="error-icon">
-                !
-              </span>
-
-              <span>
-                {error}
-              </span>
-
+              <span className="error-icon">!</span>
+              <span>{error}</span>
             </div>
           )}
 
 
           {/* Form */}
-
           <form onSubmit={handleSubmit}>
 
-            {/* Email */}
-
             <div className="login-form-group">
-
-              <label htmlFor="email">
-                Email Address
-              </label>
-
+              <label htmlFor="email">Email Address</label>
               <input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(event) =>
-                  setEmail(event.target.value)
-                }
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@example.com"
                 required
                 disabled={loading}
                 autoComplete="email"
               />
-
             </div>
 
 
-            {/* Password */}
-
             <div className="login-form-group">
-
-              <label htmlFor="password">
-                Password
-              </label>
-
+              <label htmlFor="password">Password</label>
               <input
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter your password"
                 required
                 disabled={loading}
                 autoComplete="current-password"
               />
-
             </div>
 
-
-            {/* Remember */}
 
             <div className="remember-row">
-
               <label className="remember-label">
-
-                <input
-                  type="checkbox"
-                  disabled={loading}
-                />
-
-                <span>
-                  Remember me
-                </span>
-
+                <input type="checkbox" disabled={loading} />
+                <span>Remember me</span>
               </label>
-
             </div>
 
-
-            {/* Login Button */}
 
             <button
               type="submit"
               disabled={loading}
               className="login-submit"
             >
-
-              {loading
-                ? "Logging in..."
-                : "Sign In"}
-
+              {loading ? "Logging in..." : "Sign In"}
             </button>
 
           </form>
 
 
-          {/* Register */}
-
           <div className="register-text">
-
-            <span>
-              Don't have an account?
-            </span>
-
-            <Link href="/register">
-              Create an account
-            </Link>
-
+            <span>Don't have an account?</span>
+            <Link href="/register">Create an account</Link>
           </div>
 
 
-          {/* Home */}
-
-          <Link
-            href="/"
-            className="back-home"
-          >
+          <Link href="/" className="back-home">
             ← Back to home
           </Link>
 

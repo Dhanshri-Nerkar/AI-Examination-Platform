@@ -232,14 +232,6 @@ export default function AdminExaminations() {
         <header className="exams-header">
 
           <div>
-            <button
-              className="back-button"
-              onClick={() =>
-                router.push("/admin")
-              }
-            >
-              ← Admin Dashboard
-            </button>
 
             <p className="exams-eyebrow">
               EXAMINATION MANAGEMENT

@@ -172,17 +172,6 @@ export default function AdminAttemptDetails() {
 
           <div>
 
-            <button
-              className="back-button"
-              onClick={() =>
-                router.push(
-                  `/admin/exams/${examId}`
-                )
-              }
-            >
-              ← Back to Examination
-            </button>
-
             <p className="attempt-eyebrow">
               STUDENT ATTEMPT
             </p>
