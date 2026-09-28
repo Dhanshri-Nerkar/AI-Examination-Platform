@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import "./create-question.css";
 
 export default function CreateQuestionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Keep the selected examination
+  const examId = searchParams.get("exam");
 
   const [user, setUser] = useState(null);
 
@@ -104,7 +108,6 @@ export default function CreateQuestionPage() {
         "http://127.0.0.1:8000/exams/questions",
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -153,13 +156,33 @@ export default function CreateQuestionPage() {
 
       alert("Question saved successfully.");
 
-      router.push("/examiner/questions");
+      /*
+       * IMPORTANT:
+       * If an examination was selected before opening this page,
+       * return directly to that examination's question bank.
+       *
+       * Example:
+       * /examiner/questions?exam=5
+       */
+      if (examId) {
+        router.push(`/examiner/questions?exam=${examId}`);
+      } else {
+        router.push("/examiner/questions");
+      }
     } catch (error) {
       setError(
         error.message || "Something went wrong while saving."
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  function goBackToQuestionBank() {
+    if (examId) {
+      router.push(`/examiner/questions?exam=${examId}`);
+    } else {
+      router.push("/examiner/questions");
     }
   }
 
@@ -177,7 +200,7 @@ export default function CreateQuestionPage() {
       <header className="create-question-header">
         <button
           className="back-button"
-          onClick={() => router.push("/examiner/questions")}
+          onClick={goBackToQuestionBank}
         >
           ← Question Bank
         </button>
@@ -208,6 +231,23 @@ export default function CreateQuestionPage() {
             Add the question details below. You can use this
             question later when creating an examination.
           </p>
+
+          {/* Show selected examination when opened from an exam */}
+          {examId && (
+            <div
+              style={{
+                marginTop: "12px",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                background: "#f5f3ff",
+                color: "#5b4bdb",
+                fontSize: "14px",
+                fontWeight: "600",
+              }}
+            >
+              Creating question for the selected examination
+            </div>
+          )}
         </div>
 
         <form
@@ -482,9 +522,7 @@ export default function CreateQuestionPage() {
             <button
               type="button"
               className="cancel-button"
-              onClick={() =>
-                router.push("/examiner/questions")
-              }
+              onClick={goBackToQuestionBank}
               disabled={saving}
             >
               Cancel

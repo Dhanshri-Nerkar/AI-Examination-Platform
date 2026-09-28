@@ -1,32 +1,27 @@
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from typing import Optional
+from pydantic import BaseModel
+
+
+# =========================================================
+# AUTH
+# =========================================================
 
 class RegisterRequest(BaseModel):
-    name: str = Field(
-        min_length=2,
-        max_length=100
-    )
-
-    email: EmailStr
-
-    password: str = Field(
-        min_length=8,
-        max_length=100
-    )
-
+    name: str
+    email: str
+    password: str
     role: str = "student"
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
 class UserResponse(BaseModel):
     id: int
     name: str
-    email: EmailStr
+    email: str
     role: str
     status: str
 
@@ -39,45 +34,84 @@ class TokenResponse(BaseModel):
     token_type: str
     role: str
 
+
+# =========================================================
+# EXAM
+# =========================================================
+
 class ExamCreate(BaseModel):
     exam_name: str
     subject: str
+
     duration_minutes: int
+
     start_time: datetime
     end_time: datetime
+
     total_questions: int
+
+    mcq_questions: int = 0
+    true_false_questions: int = 0
+    short_answer_questions: int = 0
+    long_answer_questions: int = 0
+
     maximum_marks: int
 
 
 class ExamResponse(BaseModel):
     id: int
     examiner_id: int
+
     exam_name: str
     subject: str
+
     duration_minutes: int
+
     start_time: datetime
     end_time: datetime
+
     total_questions: int
+
+    mcq_questions: int
+    true_false_questions: int
+    short_answer_questions: int
+    long_answer_questions: int
+
     maximum_marks: int
+
     is_published: bool
+    result_published: bool
 
     class Config:
         from_attributes = True
 
+
+# =========================================================
+# STUDENT EXAM
+# =========================================================
+
 class StudentExamResponse(BaseModel):
     id: int
     examiner_id: int
+
     exam_name: str
     subject: str
+
     duration_minutes: int
+
     start_time: datetime
     end_time: datetime
-    total_questions: int
-    maximum_marks: int
-    is_published: bool
 
-    attempt_id: Optional[int] = None
-    attempt_status: Optional[str] = None
+    total_questions: int
+
+    mcq_questions: int
+    true_false_questions: int
+    short_answer_questions: int
+    long_answer_questions: int
+
+    maximum_marks: int
+
+    is_published: bool
 
     class Config:
         from_attributes = True
@@ -88,36 +122,51 @@ class StudentExamListResponse(BaseModel):
     completed: list[StudentExamResponse]
 
 
+# =========================================================
+# QUESTIONS
+# =========================================================
+
 class QuestionCreate(BaseModel):
     subject: str
     question_text: str
     question_type: str
     difficulty: str
-    option_a: Optional[str] = None
-    option_b: Optional[str] = None
-    option_c: Optional[str] = None
-    option_d: Optional[str] = None
+
+    option_a: str | None = None
+    option_b: str | None = None
+    option_c: str | None = None
+    option_d: str | None = None
+
     correct_answer: str
+
     marks: int
 
 
 class QuestionResponse(BaseModel):
     id: int
     examiner_id: int
+
     subject: str
     question_text: str
     question_type: str
     difficulty: str
-    option_a: Optional[str] = None
-    option_b: Optional[str] = None
-    option_c: Optional[str] = None
-    option_d: Optional[str] = None
+
+    option_a: str | None = None
+    option_b: str | None = None
+    option_c: str | None = None
+    option_d: str | None = None
+
     correct_answer: str
+
     marks: int
 
     class Config:
         from_attributes = True
 
+
+# =========================================================
+# EXAM QUESTIONS
+# =========================================================
 
 class ExamQuestionCreate(BaseModel):
     exam_id: int
@@ -134,46 +183,49 @@ class ExamQuestionResponse(BaseModel):
         from_attributes = True
 
 
-from datetime import datetime
-from pydantic import BaseModel
-from typing import Optional
-
+# =========================================================
+# STUDENT EXAM SESSION
+# =========================================================
 
 class ExamStartResponse(BaseModel):
     attempt_id: int
     exam_id: int
     started_at: datetime
-    status: str
 
 
 class StudentQuestionResponse(BaseModel):
     id: int
     question_text: str
     question_type: str
-    difficulty: str
-    option_a: Optional[str] = None
-    option_b: Optional[str] = None
-    option_c: Optional[str] = None
-    option_d: Optional[str] = None
+
+    option_a: str | None = None
+    option_b: str | None = None
+    option_c: str | None = None
+    option_d: str | None = None
+
     marks: int
+    question_order: int
 
 
 class StudentExamPaperResponse(BaseModel):
     attempt_id: int
+
     exam_id: int
     exam_name: str
     subject: str
+
     duration_minutes: int
     maximum_marks: int
+
     started_at: datetime
+
     questions: list[StudentQuestionResponse]
 
 
 class StudentAnswerCreate(BaseModel):
     attempt_id: int
     question_id: int
-    selected_answer: Optional[str] = None
-
+    selected_answer: str | None = None
 
 class ExamSubmitResponse(BaseModel):
     attempt_id: int

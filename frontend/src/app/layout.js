@@ -20,18 +20,21 @@ const inter = Inter({
 export default function RootLayout({ children }) {
   const pathname = usePathname();
 
-  // Hide the marketing navbar on admin pages
-  const isAdmin = pathname?.startsWith("/admin");
+  // Hide marketing navbar on in-app pages
+  const isAppPage =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/examiner") ||
+    pathname?.startsWith("/student");
 
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className={`${spaceGrotesk.variable} ${inter.variable}`}>
 
         {/* ==================================================
-            MARKETING NAVBAR (hidden on /admin/*)
+            MARKETING NAVBAR (hidden on app pages)
         ================================================== */}
 
-        {!isAdmin && (
+        {!isAppPage && (
           <nav className="navbar">
             <div className="navbar-container">
 
@@ -79,46 +82,48 @@ export default function RootLayout({ children }) {
         {children}
 
         {/* ==================================================
-            FOOTER (always shown)
+            FOOTER (hidden on app pages too)
         ================================================== */}
 
-        <footer className="footer">
-          <div className="footer-container">
+        {!isAppPage && (
+          <footer className="footer">
+            <div className="footer-container">
 
-            <div className="footer-logo">
-              <div className="logo-mark">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="logoGradFooter" x1="0" y1="0" x2="40" y2="40">
-                      <stop offset="0%" stopColor="#2563eb" />
-                      <stop offset="100%" stopColor="#60a5fa" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
-                    fill="url(#logoGradFooter)"
-                  />
-                  <text
-                    x="20"
-                    y="25"
-                    textAnchor="middle"
-                    fontSize="13"
-                    fontWeight="800"
-                    fill="white"
-                    fontFamily="system-ui, sans-serif"
-                    letterSpacing="0.5"
-                  >
-                    AI
-                  </text>
-                </svg>
+              <div className="footer-logo">
+                <div className="logo-mark">
+                  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="logoGradFooter" x1="0" y1="0" x2="40" y2="40">
+                        <stop offset="0%" stopColor="#2563eb" />
+                        <stop offset="100%" stopColor="#60a5fa" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
+                      fill="url(#logoGradFooter)"
+                    />
+                    <text
+                      x="20"
+                      y="25"
+                      textAnchor="middle"
+                      fontSize="13"
+                      fontWeight="800"
+                      fill="white"
+                      fontFamily="system-ui, sans-serif"
+                      letterSpacing="0.5"
+                    >
+                      AI
+                    </text>
+                  </svg>
+                </div>
+                <span>AI Examination Platform</span>
               </div>
-              <span>AI Examination Platform</span>
+
+              <p>© 2026 AI Examination Platform</p>
+
             </div>
-
-            <p>© 2026 AI Examination Platform</p>
-
-          </div>
-        </footer>
+          </footer>
+        )}
 
       </body>
     </html>

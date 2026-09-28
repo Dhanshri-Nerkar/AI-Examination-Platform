@@ -6,26 +6,34 @@ import "./questions.css";
 
 export default function QuestionsPage() {
   const router = useRouter();
-
   const searchParams = useSearchParams();
+
   const examFromUrl = searchParams.get("exam");
 
   const [user, setUser] = useState(null);
+
   const [questions, setQuestions] = useState([]);
   const [exams, setExams] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [selectedExam, setSelectedExam] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+
+  const [assignedQuestionIds, setAssignedQuestionIds] = useState([]);
+  const [assignedQuestions, setAssignedQuestions] = useState([]);
+  const [assignedLoading, setAssignedLoading] = useState(false);
+
+  const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("All");
   const [difficultyFilter, setDifficultyFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [marksFilter, setMarksFilter] = useState("All");
 
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
-  const [selectedExam, setSelectedExam] = useState("");
-
-  const [adding, setAdding] = useState(false);
+  // ---------------------------------------------------------
+  // AUTH + LOAD QUESTIONS + LOAD EXAMS
+  // ---------------------------------------------------------
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -36,7 +44,16 @@ export default function QuestionsPage() {
       return;
     }
 
-    setUser({ role });
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        setUser(null);
+      }
+    }
+
     loadData(token);
   }, [router]);
 
@@ -44,129 +61,690 @@ export default function QuestionsPage() {
     try {
       setLoading(true);
 
-      const [questionsResponse, examsResponse] =
-        await Promise.all([
-          fetch(
-            "http://127.0.0.1:8000/exams/questions/my-questions",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          ),
+      const [questionsResponse, examsResponse] = await Promise.all([
+        fetch("http://127.0.0.1:8000/exams/questions/my-questions", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }),
 
-          fetch(
-            "http://127.0.0.1:8000/exams/my-exams",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          ),
-        ]);
+        fetch("http://127.0.0.1:8000/exams/my-exams", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }),
+      ]);
 
-      const questionsData =
-        await questionsResponse.json();
+      if (questionsResponse.ok) {
+        const questionData = await questionsResponse.json();
 
-      const examsData =
-        await examsResponse.json();
-
-      if (!questionsResponse.ok) {
-        throw new Error(
-          questionsData.detail ||
-            "Unable to load questions."
+        setQuestions(
+          Array.isArray(questionData)
+            ? questionData
+            : Array.isArray(questionData.questions)
+            ? questionData.questions
+            : []
         );
+      } else {
+        setQuestions([]);
       }
 
-      if (!examsResponse.ok) {
-        throw new Error(
-          examsData.detail ||
-            "Unable to load examinations."
-        );
-      }
+      if (examsResponse.ok) {
+        const examData = await examsResponse.json();
 
-      setQuestions(questionsData);
-      setExams(examsData);
+        const safeExams = Array.isArray(examData)
+          ? examData
+          : Array.isArray(examData.exams)
+          ? examData.exams
+          : [];
 
-      if (examFromUrl) {
-        const examExists = examsData.some(
-          (exam) =>
-            String(exam.id) ===
-            String(examFromUrl)
-        );
+        setExams(safeExams);
 
-        if (examExists) {
-          setSelectedExam(examFromUrl);
+        if (examFromUrl) {
+          const matchingExam = safeExams.find(
+            (exam) => String(exam.id) === String(examFromUrl)
+          );
 
-          const selectedExamData =
-            examsData.find(
-              (exam) =>
-                String(exam.id) ===
-                String(examFromUrl)
-            );
-
-          if (selectedExamData?.subject) {
-            setSubjectFilter(
-              selectedExamData.subject
-            );
+          if (matchingExam) {
+            setSelectedExam(String(matchingExam.id));
           }
         }
+      } else {
+        setExams([]);
       }
     } catch (error) {
-      console.error(error);
-      alert(error.message);
+      console.error("Failed to load question bank data:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("role");
+  // ---------------------------------------------------------
+  // SELECT EXAM
+  // ---------------------------------------------------------
 
-    router.push("/login");
+  function handleSelectExam(examId) {
+    const id = String(examId);
+
+    setSelectedExam(id);
+    setSelectedQuestions([]);
+
+    setSubjectFilter("All");
+    setSearch("");
+    setDifficultyFilter("All");
+    setTypeFilter("All");
+    setMarksFilter("All");
+
+    router.push(`/examiner/questions?exam=${id}`);
   }
 
-  function handleSelectQuestion(id) {
-    setSelectedQuestions((current) => {
-      if (current.includes(id)) {
-        return current.filter(
-          (questionId) =>
-            questionId !== id
+  // ---------------------------------------------------------
+  // CHANGE EXAM
+  // ---------------------------------------------------------
+
+  function handleChangeExam() {
+    setSelectedExam("");
+    setSelectedQuestions([]);
+
+    setAssignedQuestions([]);
+    setAssignedQuestionIds([]);
+
+    setSubjectFilter("All");
+    setSearch("");
+    setDifficultyFilter("All");
+    setTypeFilter("All");
+    setMarksFilter("All");
+
+    router.push("/examiner/questions");
+  }
+
+  // ---------------------------------------------------------
+  // CURRENT EXAM
+  // ---------------------------------------------------------
+
+  const currentExam = useMemo(() => {
+    return exams.find(
+      (exam) => String(exam.id) === String(selectedExam)
+    );
+  }, [exams, selectedExam]);
+
+  // ---------------------------------------------------------
+  // LOAD ASSIGNED QUESTIONS
+  // ---------------------------------------------------------
+
+  useEffect(() => {
+    if (!selectedExam) {
+      setAssignedQuestions([]);
+      setAssignedQuestionIds([]);
+      return;
+    }
+
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      return;
+    }
+
+    loadAssignedQuestions(token, selectedExam);
+  }, [selectedExam]);
+
+  async function loadAssignedQuestions(token, examId) {
+    try {
+      setAssignedLoading(true);
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/exams/${examId}/questions`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        setAssignedQuestions([]);
+        setAssignedQuestionIds([]);
+        return;
+      }
+
+      const data = await response.json();
+
+      const safeData = Array.isArray(data)
+        ? data
+        : Array.isArray(data.questions)
+        ? data.questions
+        : [];
+
+      setAssignedQuestions(safeData);
+
+      setAssignedQuestionIds(
+        safeData.map((item) =>
+          String(item.question_id ?? item.id)
+        )
+      );
+    } catch (error) {
+      console.error("Failed to load assigned questions:", error);
+      setAssignedQuestions([]);
+      setAssignedQuestionIds([]);
+    } finally {
+      setAssignedLoading(false);
+    }
+  }
+
+  // ---------------------------------------------------------
+  // NORMALIZE QUESTION TYPE
+  // ---------------------------------------------------------
+
+  function normalizeQuestionType(type) {
+    if (!type) return "";
+
+    const value = String(type)
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]/g, " ");
+
+    if (
+      value === "mcq" ||
+      value === "multiple choice" ||
+      value === "multiple choice question"
+    ) {
+      return "mcq";
+    }
+
+    if (
+      value === "true/false" ||
+      value === "true false" ||
+      value === "true or false" ||
+      value === "truefalse"
+    ) {
+      return "true_false";
+    }
+
+    if (
+      value === "short answer" ||
+      value === "shortanswer" ||
+      value === "short"
+    ) {
+      return "short_answer";
+    }
+
+    if (
+      value === "long answer" ||
+      value === "longanswer" ||
+      value === "long" ||
+      value === "essay"
+    ) {
+      return "long_answer";
+    }
+
+    return value;
+  }
+
+  // ---------------------------------------------------------
+  // QUESTION PROGRESS
+  // ---------------------------------------------------------
+
+  const questionProgress = useMemo(() => {
+    if (!currentExam) {
+      return {
+        mcq: 0,
+        true_false: 0,
+        short_answer: 0,
+        long_answer: 0,
+        total: 0,
+      };
+    }
+
+    const assigned = Array.isArray(assignedQuestions)
+      ? assignedQuestions
+      : [];
+
+    const selected = questions.filter((question) =>
+      selectedQuestions.includes(question.id)
+    );
+
+    const assignedQuestionObjects = assigned
+      .map((item) => {
+        const questionId = item.question_id ?? item.id;
+        return questions.find(
+          (question) => String(question.id) === String(questionId)
+        );
+      })
+      .filter(Boolean);
+
+    const allQuestions = [...assignedQuestionObjects, ...selected];
+
+    const counts = {
+      mcq: 0,
+      true_false: 0,
+      short_answer: 0,
+      long_answer: 0,
+    };
+
+    allQuestions.forEach((question) => {
+      const type = normalizeQuestionType(question.question_type);
+      if (counts[type] !== undefined) {
+        counts[type]++;
+      }
+    });
+
+    return {
+      ...counts,
+      total: allQuestions.length,
+    };
+  }, [
+    assignedQuestions,
+    questions,
+    selectedQuestions,
+    currentExam,
+  ]);
+
+  // ---------------------------------------------------------
+  // FILTER VALUES
+  // ---------------------------------------------------------
+
+  const subjects = useMemo(() => {
+    const values = questions
+      .map((question) => question.subject)
+      .filter(Boolean);
+
+    return ["All", ...new Set(values)];
+  }, [questions]);
+
+  const difficulties = useMemo(() => {
+    const values = questions
+      .map((question) => question.difficulty)
+      .filter(Boolean);
+
+    return ["All", ...new Set(values)];
+  }, [questions]);
+
+  const questionTypes = useMemo(() => {
+    return [
+      "All",
+      "MCQ",
+      "True/False",
+      "Short Answer",
+      "Long Answer",
+    ];
+  }, []);
+
+  const marksOptions = useMemo(() => {
+    const values = questions
+      .map((question) => question.marks)
+      .filter(
+        (value) =>
+          value !== undefined &&
+          value !== null &&
+          value !== ""
+      )
+      .map(Number);
+
+    return ["All", ...new Set(values)];
+  }, [questions]);
+
+  // ---------------------------------------------------------
+  // FILTER QUESTIONS
+  // ---------------------------------------------------------
+
+  const selectableQuestions = useMemo(() => {
+    return questions.filter((question) => {
+      if (
+        assignedQuestionIds.includes(
+          String(question.id)
+        )
+      ) {
+        return false;
+      }
+
+      const searchValue = search.trim().toLowerCase();
+
+      if (searchValue) {
+        const questionText = String(
+          question.question_text || ""
+        ).toLowerCase();
+
+        const subject = String(
+          question.subject || ""
+        ).toLowerCase();
+
+        if (
+          !questionText.includes(searchValue) &&
+          !subject.includes(searchValue)
+        ) {
+          return false;
+        }
+      }
+
+      if (
+        subjectFilter !== "All" &&
+        question.subject !== subjectFilter
+      ) {
+        return false;
+      }
+
+      if (
+        difficultyFilter !== "All" &&
+        question.difficulty !== difficultyFilter
+      ) {
+        return false;
+      }
+
+      if (typeFilter !== "All") {
+        const normalized = normalizeQuestionType(
+          question.question_type
+        );
+
+        if (typeFilter === "MCQ" && normalized !== "mcq")
+          return false;
+        if (
+          typeFilter === "True/False" &&
+          normalized !== "true_false"
+        )
+          return false;
+        if (
+          typeFilter === "Short Answer" &&
+          normalized !== "short_answer"
+        )
+          return false;
+        if (
+          typeFilter === "Long Answer" &&
+          normalized !== "long_answer"
+        )
+          return false;
+      }
+
+      if (
+        marksFilter !== "All" &&
+        Number(question.marks) !== Number(marksFilter)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    questions,
+    assignedQuestionIds,
+    search,
+    subjectFilter,
+    difficultyFilter,
+    typeFilter,
+    marksFilter,
+  ]);
+
+  // ---------------------------------------------------------
+  // CAN SELECT
+  // ---------------------------------------------------------
+
+  function canSelectQuestion(question) {
+    if (!currentExam) return false;
+
+    const questionId = String(question.id);
+
+    if (assignedQuestionIds.includes(questionId)) return false;
+    if (selectedQuestions.includes(question.id)) return true;
+
+    if (
+      questionProgress.total >=
+      Number(currentExam.total_questions)
+    ) {
+      return false;
+    }
+
+    const type = normalizeQuestionType(question.question_type);
+
+    if (
+      type === "mcq" &&
+      questionProgress.mcq >=
+        Number(currentExam.mcq_questions || 0)
+    )
+      return false;
+
+    if (
+      type === "true_false" &&
+      questionProgress.true_false >=
+        Number(currentExam.true_false_questions || 0)
+    )
+      return false;
+
+    if (
+      type === "short_answer" &&
+      questionProgress.short_answer >=
+        Number(currentExam.short_answer_questions || 0)
+    )
+      return false;
+
+    if (
+      type === "long_answer" &&
+      questionProgress.long_answer >=
+        Number(currentExam.long_answer_questions || 0)
+    )
+      return false;
+
+    return true;
+  }
+
+  // ---------------------------------------------------------
+  // SELECT / UNSELECT
+  // ---------------------------------------------------------
+
+  function handleSelectQuestion(question) {
+    const alreadySelected = selectedQuestions.includes(
+      question.id
+    );
+
+    if (alreadySelected) {
+      setSelectedQuestions((previous) =>
+        previous.filter((id) => id !== question.id)
+      );
+      return;
+    }
+
+    if (!canSelectQuestion(question)) return;
+
+    setSelectedQuestions((previous) => [
+      ...previous,
+      question.id,
+    ]);
+  }
+
+  // ---------------------------------------------------------
+  // SELECT ALL
+  // ---------------------------------------------------------
+
+  function handleSelectAll() {
+    if (!currentExam) return;
+
+    const newSelection = [];
+
+    const counts = {
+      mcq: questionProgress.mcq,
+      true_false: questionProgress.true_false,
+      short_answer: questionProgress.short_answer,
+      long_answer: questionProgress.long_answer,
+    };
+
+    for (const question of selectableQuestions) {
+      if (
+        questionProgress.total + newSelection.length >=
+        Number(currentExam.total_questions)
+      ) {
+        break;
+      }
+
+      const type = normalizeQuestionType(question.question_type);
+
+      if (counts[type] === undefined) continue;
+
+      let limit = 0;
+      if (type === "mcq")
+        limit = Number(currentExam.mcq_questions || 0);
+      if (type === "true_false")
+        limit = Number(currentExam.true_false_questions || 0);
+      if (type === "short_answer")
+        limit = Number(currentExam.short_answer_questions || 0);
+      if (type === "long_answer")
+        limit = Number(currentExam.long_answer_questions || 0);
+
+      if (counts[type] >= limit) continue;
+
+      newSelection.push(question.id);
+      counts[type]++;
+    }
+
+    setSelectedQuestions(newSelection);
+  }
+
+  // ---------------------------------------------------------
+  // ADD TO EXAM
+  // ---------------------------------------------------------
+
+  async function handleAddToExam() {
+    if (!selectedExam) {
+      alert("Please select an examination.");
+      return;
+    }
+
+    if (selectedQuestions.length === 0) {
+      alert("Please select at least one question.");
+      return;
+    }
+
+    if (!currentExam) {
+      alert("Selected examination was not found.");
+      return;
+    }
+
+    if (
+      questionProgress.total >
+      Number(currentExam.total_questions)
+    ) {
+      alert(
+        `You can add only ${currentExam.total_questions} questions in this examination.`
+      );
+      return;
+    }
+
+    const finalProgress = {
+      mcq: questionProgress.mcq,
+      true_false: questionProgress.true_false,
+      short_answer: questionProgress.short_answer,
+      long_answer: questionProgress.long_answer,
+    };
+
+    if (
+      finalProgress.mcq >
+      Number(currentExam.mcq_questions || 0)
+    ) {
+      alert("MCQ question limit exceeded.");
+      return;
+    }
+
+    if (
+      finalProgress.true_false >
+      Number(currentExam.true_false_questions || 0)
+    ) {
+      alert("True/False question limit exceeded.");
+      return;
+    }
+
+    if (
+      finalProgress.short_answer >
+      Number(currentExam.short_answer_questions || 0)
+    ) {
+      alert("Short Answer question limit exceeded.");
+      return;
+    }
+
+    if (
+      finalProgress.long_answer >
+      Number(currentExam.long_answer_questions || 0)
+    ) {
+      alert("Long Answer question limit exceeded.");
+      return;
+    }
+
+    try {
+      setAdding(true);
+
+      const token = localStorage.getItem("access_token");
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/exams/${selectedExam}/questions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            exam_id: Number(selectedExam),
+            question_ids: selectedQuestions,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Failed to add questions to examination."
         );
       }
 
-      return [...current, id];
-    });
-  }
+      await loadAssignedQuestions(token, selectedExam);
+      setSelectedQuestions([]);
+      await loadData(token);
 
-  function handleSelectAll() {
-    const filteredIds =
-      filteredQuestions.map(
-        (question) => question.id
+      const assignedResponse = await fetch(
+        `http://127.0.0.1:8000/exams/${selectedExam}/questions`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        }
       );
 
-    const allSelected =
-      filteredIds.every((id) =>
-        selectedQuestions.includes(id)
-      );
+      if (assignedResponse.ok) {
+        const assignedData = await assignedResponse.json();
 
-    if (allSelected) {
-      setSelectedQuestions((current) =>
-        current.filter(
-          (id) =>
-            !filteredIds.includes(id)
-        )
+        const safeAssigned = Array.isArray(assignedData)
+          ? assignedData
+          : Array.isArray(assignedData.questions)
+          ? assignedData.questions
+          : [];
+
+        if (
+          safeAssigned.length ===
+          Number(currentExam.total_questions)
+        ) {
+          alert(
+            `✓ Done! All ${currentExam.total_questions} questions have been added.`
+          );
+        } else {
+          alert("Questions added successfully.");
+        }
+      } else {
+        alert("Questions added successfully.");
+      }
+    } catch (error) {
+      console.error("Failed to add questions:", error);
+      alert(
+        error.message ||
+          "Failed to add questions to examination."
       );
-    } else {
-      setSelectedQuestions((current) => [
-        ...new Set([
-          ...current,
-          ...filteredIds,
-        ]),
-      ]);
+    } finally {
+      setAdding(false);
     }
   }
+
+  // ---------------------------------------------------------
+  // RESET FILTERS
+  // ---------------------------------------------------------
 
   function clearFilters() {
     setSearch("");
@@ -176,659 +754,506 @@ export default function QuestionsPage() {
     setMarksFilter("All");
   }
 
-  function handleExamChange(event) {
-    const examId = event.target.value;
+  // ---------------------------------------------------------
+  // LOADING
+  // ---------------------------------------------------------
 
-    setSelectedExam(examId);
-
-    if (!examId) {
-      setSubjectFilter("All");
-      return;
-    }
-
-    const exam = exams.find(
-      (item) =>
-        String(item.id) ===
-        String(examId)
-    );
-
-    if (!exam) {
-      return;
-    }
-
-    if (exam.subject) {
-      setSubjectFilter(exam.subject);
-    }
-  }
-
-  async function handleAddToExam() {
-    if (!selectedExam) {
-      alert("Please select an examination.");
-      return;
-    }
-
-    if (selectedQuestions.length === 0) {
-      alert(
-        "Please select at least one question."
-      );
-      return;
-    }
-
-    const exam = exams.find(
-      (item) =>
-        String(item.id) ===
-        String(selectedExam)
-    );
-
-    if (!exam) {
-      alert(
-        "Selected examination could not be found."
-      );
-      return;
-    }
-
-    if (
-      selectedQuestions.length >
-      exam.total_questions
-    ) {
-      alert(
-        `This examination allows ${exam.total_questions} question(s).`
-      );
-      return;
-    }
-
-    const invalidSubjectQuestion =
-      questions.find(
-        (question) =>
-          selectedQuestions.includes(
-            question.id
-          ) &&
-          question.subject.toLowerCase() !==
-            exam.subject.toLowerCase()
-      );
-
-    if (invalidSubjectQuestion) {
-      alert(
-        `Question "${invalidSubjectQuestion.question_text}" does not belong to the ${exam.subject} subject.`
-      );
-      return;
-    }
-
-    const token =
-      localStorage.getItem(
-        "access_token"
-      );
-
-    setAdding(true);
-
-    try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/exams/${selectedExam}/questions`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            exam_id: Number(selectedExam),
-            question_ids:
-              selectedQuestions,
-          }),
-        }
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "Unable to add questions to the examination."
-        );
-      }
-
-      alert(
-        `${selectedQuestions.length} question(s) added successfully.`
-      );
-
-      setSelectedQuestions([]);
-      setSelectedExam("");
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  const subjects = useMemo(() => {
-    return [
-      ...new Set(
-        questions
-          .map(
-            (question) =>
-              question.subject
-          )
-          .filter(Boolean)
-      ),
-    ].sort();
-  }, [questions]);
-
-  const questionTypes = useMemo(() => {
-    return [
-      ...new Set(
-        questions
-          .map(
-            (question) =>
-              question.question_type
-          )
-          .filter(Boolean)
-      ),
-    ].sort();
-  }, [questions]);
-
-  const markValues = useMemo(() => {
-    return [
-      ...new Set(
-        questions
-          .map(
-            (question) =>
-              question.marks
-          )
-          .filter(
-            (marks) =>
-              marks !== null &&
-              marks !== undefined
-          )
-      ),
-    ].sort((a, b) => a - b);
-  }, [questions]);
-
-  const filteredQuestions = useMemo(() => {
-    return questions.filter((question) => {
-      const searchText =
-        search.trim().toLowerCase();
-
-      const questionText =
-        question.question_text?.toLowerCase() ||
-        "";
-
-      const subject =
-        question.subject?.toLowerCase() ||
-        "";
-
-      const matchesSearch =
-        !searchText ||
-        questionText.includes(searchText) ||
-        subject.includes(searchText);
-
-      const matchesSubject =
-        subjectFilter === "All" ||
-        question.subject ===
-          subjectFilter;
-
-      const matchesDifficulty =
-        difficultyFilter === "All" ||
-        question.difficulty ===
-          difficultyFilter;
-
-      const matchesType =
-        typeFilter === "All" ||
-        question.question_type ===
-          typeFilter;
-
-      const matchesMarks =
-        marksFilter === "All" ||
-        String(question.marks) ===
-          String(marksFilter);
-
-      return (
-        matchesSearch &&
-        matchesSubject &&
-        matchesDifficulty &&
-        matchesType &&
-        matchesMarks
-      );
-    });
-  }, [
-    questions,
-    search,
-    subjectFilter,
-    difficultyFilter,
-    typeFilter,
-    marksFilter,
-  ]);
-
-  const allFilteredSelected =
-    filteredQuestions.length > 0 &&
-    filteredQuestions.every(
-      (question) =>
-        selectedQuestions.includes(
-          question.id
-        )
-    );
-
-  const selectedExamObject =
-    exams.find(
-      (exam) =>
-        String(exam.id) ===
-        String(selectedExam)
-    );
-
-  if (!user) {
+  if (loading) {
     return (
-      <main className="questions-loading">
-        <div className="loading-card">
-          <div className="loading-spinner"></div>
-          <p>Loading...</p>
+      <div className="questions-page">
+        <div className="questions-loading">
+          <div className="loading-card">
+            <div className="loading-spinner"></div>
+            <p>Loading Question Bank...</p>
+          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
-  return (
-    <main className="questions-page">
-      <header className="questions-header">
-        <div className="header-left">
-          <button
-            className="back-button"
-            onClick={() =>
-              router.push("/examiner")
-            }
-          >
-            ← Dashboard
-          </button>
+  // ---------------------------------------------------------
+  // EXAM SELECTION SCREEN
+  // ---------------------------------------------------------
 
-          <div>
-            <div className="brand-small">
-              <span className="brand-icon">
-                ✦
+  if (!selectedExam) {
+    return (
+      <div className="questions-page">
+        <main className="questions-content">
+
+          <div className="questions-hero">
+            <div className="questions-hero-icon">📝</div>
+
+            <div className="questions-hero-content">
+              <p className="section-label">EXAMINER</p>
+
+              <h1>Question Bank</h1>
+
+              <p>
+                Select an examination to add and
+                manage its questions.
+              </p>
+            </div>
+
+            <div className="questions-hero-count">
+              <strong>{exams.length}</strong>
+              <span>
+                {exams.length === 1
+                  ? "Examination"
+                  : "Examinations"}
               </span>
-
-              AI Examination
             </div>
-
-            <h1>Question Bank</h1>
-
-            <p>
-              Create and manage examination
-              questions
-            </p>
-          </div>
-        </div>
-
-        <button
-          className="logout-button"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </header>
-
-      <section className="questions-content">
-
-        {/* =========================
-            INTRO
-        ========================= */}
-
-        <div className="intro-section">
-          <div>
-            <span className="section-label">
-              QUESTION MANAGEMENT
-            </span>
-
-            <h2>Your Question Bank</h2>
-
-            <p>
-              Find the right questions using
-              filters and add them to an
-              examination.
-            </p>
           </div>
 
-          <div className="question-count">
-            <span>
-              {selectedQuestions.length}
-            </span>
+          {exams.length === 0 ? (
+            <div className="empty-question-state">
+              <div className="empty-icon">📋</div>
 
-            <small>Selected</small>
-          </div>
-        </div>
+              <h3>No examinations found</h3>
 
-
-        {/* =========================
-            ASSIGN QUESTIONS
-            MOVED TO TOP
-        ========================= */}
-
-        {selectedQuestions.length > 0 && (
-          <section className="assign-card">
-
-            <div className="assign-info">
-
-              <div className="next-icon">
-                ✓
-              </div>
-
-              <div>
-                <h3>
-                  Add questions to an
-                  examination
-                </h3>
-
-                <p>
-                  {selectedQuestions.length}{" "}
-                  question
-                  {selectedQuestions.length > 1
-                    ? "s are"
-                    : " is"}{" "}
-                  selected.
-                </p>
-              </div>
-
-            </div>
-
-
-            <div className="assign-controls">
-
-              <select
-                value={selectedExam}
-                onChange={handleExamChange}
-                className="exam-select"
-              >
-
-                <option value="">
-                  Select Examination
-                </option>
-
-                {exams.map((exam) => (
-                  <option
-                    key={exam.id}
-                    value={exam.id}
-                  >
-                    {exam.exam_name} —{" "}
-                    {exam.subject} —{" "}
-                    {exam.total_questions}{" "}
-                    questions
-                  </option>
-                ))}
-
-              </select>
-
+              <p>
+                Create an examination first before
+                adding questions.
+              </p>
 
               <button
-                className="assign-button"
-                onClick={handleAddToExam}
-                disabled={adding}
+                className="primary-button"
+                onClick={() =>
+                  router.push("/examiner/create-exam")
+                }
               >
-                {adding
-                  ? "Adding..."
-                  : "Add to Examination →"}
+                + Create Examination
               </button>
-
             </div>
+          ) : (
+            <div className="exam-selection-section">
+              <div className="exam-selection-grid">
+                {exams.map((exam) => (
+                  <div className="exam-card" key={exam.id}>
+                    <div className="exam-card-top">
+                      <div className="exam-icon">📝</div>
 
+                      <span
+                        className={`exam-status ${
+                          exam.is_published
+                            ? "published"
+                            : "draft"
+                        }`}
+                      >
+                        {exam.is_published
+                          ? "Published"
+                          : "Draft"}
+                      </span>
+                    </div>
 
-            {selectedExamObject && (
-              <div className="selected-exam-info">
+                    <h3>{exam.exam_name}</h3>
 
-                <strong>
-                  {selectedExamObject.exam_name}
-                </strong>
+                    <p className="exam-subject">
+                      {exam.subject}
+                    </p>
 
-                <span>
-                  Subject:{" "}
-                  {selectedExamObject.subject}
-                </span>
+                    <div className="exam-card-details">
+                      <div>
+                        <span>Questions</span>
+                        <strong>{exam.total_questions}</strong>
+                      </div>
 
-                <span>
-                  Required questions:{" "}
-                  {
-                    selectedExamObject.total_questions
-                  }
-                </span>
+                      <div>
+                        <span>Marks</span>
+                        <strong>{exam.maximum_marks}</strong>
+                      </div>
 
-                <span>
-                  Selected:{" "}
-                  {selectedQuestions.length}
-                </span>
+                      <div>
+                        <span>Duration</span>
+                        <strong>
+                          {exam.duration_minutes} min
+                        </strong>
+                      </div>
+                    </div>
 
+                    <div className="exam-type-summary">
+                      <span>
+                        MCQ {exam.mcq_questions || 0}
+                      </span>
+                      <span>
+                        T/F {exam.true_false_questions || 0}
+                      </span>
+                      <span>
+                        Short{" "}
+                        {exam.short_answer_questions || 0}
+                      </span>
+                      <span>
+                        Long{" "}
+                        {exam.long_answer_questions || 0}
+                      </span>
+                    </div>
+
+                    <button
+                      className="select-exam-button"
+                      onClick={() =>
+                        handleSelectExam(exam.id)
+                      }
+                    >
+                      Select Examination →
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
 
+  // ---------------------------------------------------------
+  // MAIN QUESTION BANK
+  // ---------------------------------------------------------
 
-            {exams.length === 0 && (
-              <p className="no-exams-message">
-                You haven't created an
-                examination yet. Create one
-                first from the Examiner
-                Dashboard.
-              </p>
-            )}
+  return (
+    <div className="questions-page">
+      <main className="questions-content">
 
-          </section>
-        )}
+        <div className="questions-hero">
+          <div className="questions-hero-icon">📝</div>
 
+          <div className="questions-hero-content">
+            <p className="section-label">EXAMINER</p>
 
-        {/* =========================
-            QUESTION BANK
-        ========================= */}
+            <h1>{currentExam?.exam_name || "Question Bank"}</h1>
 
-        <section className="bank-card">
+            <p>
+              Create, select and add questions to
+              your examination.
+            </p>
+          </div>
+        </div>
 
-          <div className="bank-header">
+        <div className="selected-exam-banner">
+          <div className="selected-exam-banner-left">
+            <div className="selected-exam-icon">📝</div>
 
             <div>
               <span className="section-label">
-                QUESTIONS
+                SELECTED EXAMINATION
               </span>
 
-              <h3>
-                Available Questions
-              </h3>
+              <h2>{currentExam?.exam_name}</h2>
 
               <p>
-                Questions saved in your
-                question bank.
+                {currentExam?.subject} •{" "}
+                {currentExam?.duration_minutes} minutes
+              </p>
+            </div>
+          </div>
+
+          <button
+            className="secondary-button"
+            onClick={handleChangeExam}
+          >
+            Change Examination
+          </button>
+        </div>
+
+        {currentExam && (
+          <div className="question-progress-card">
+            <div className="question-progress-header">
+              <div>
+                <span className="section-label">
+                  QUESTION REQUIREMENTS
+                </span>
+
+                <h3>Examination Question Progress</h3>
+              </div>
+
+              <div className="question-progress-total">
+                <strong>{questionProgress.total}</strong>
+                <span>/ {currentExam.total_questions}</span>
+                <small>Total</small>
+              </div>
+            </div>
+
+            <div className="question-progress-items">
+              <div className="question-progress-item">
+                <div className="question-progress-item-header">
+                  <span>MCQ</span>
+                  <strong>
+                    {questionProgress.mcq} /{" "}
+                    {currentExam.mcq_questions || 0}
+                  </strong>
+                </div>
+
+                <div className="question-progress-bar">
+                  <div
+                    className="question-progress-fill"
+                    style={{
+                      width: `${
+                        currentExam.mcq_questions
+                          ? Math.min(
+                              100,
+                              (questionProgress.mcq /
+                                currentExam.mcq_questions) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="question-progress-item">
+                <div className="question-progress-item-header">
+                  <span>True/False</span>
+                  <strong>
+                    {questionProgress.true_false} /{" "}
+                    {currentExam.true_false_questions || 0}
+                  </strong>
+                </div>
+
+                <div className="question-progress-bar">
+                  <div
+                    className="question-progress-fill"
+                    style={{
+                      width: `${
+                        currentExam.true_false_questions
+                          ? Math.min(
+                              100,
+                              (questionProgress.true_false /
+                                currentExam.true_false_questions) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="question-progress-item">
+                <div className="question-progress-item-header">
+                  <span>Short Answer</span>
+                  <strong>
+                    {questionProgress.short_answer} /{" "}
+                    {currentExam.short_answer_questions || 0}
+                  </strong>
+                </div>
+
+                <div className="question-progress-bar">
+                  <div
+                    className="question-progress-fill"
+                    style={{
+                      width: `${
+                        currentExam.short_answer_questions
+                          ? Math.min(
+                              100,
+                              (questionProgress.short_answer /
+                                currentExam.short_answer_questions) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="question-progress-item">
+                <div className="question-progress-item-header">
+                  <span>Long Answer</span>
+                  <strong>
+                    {questionProgress.long_answer} /{" "}
+                    {currentExam.long_answer_questions || 0}
+                  </strong>
+                </div>
+
+                <div className="question-progress-bar">
+                  <div
+                    className="question-progress-fill"
+                    style={{
+                      width: `${
+                        currentExam.long_answer_questions
+                          ? Math.min(
+                              100,
+                              (questionProgress.long_answer /
+                                currentExam.long_answer_questions) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="assign-card">
+          <div className="assign-card-info">
+            <span className="section-label">ADD QUESTIONS</span>
+
+            <h3>Build Your Examination Paper</h3>
+
+            <p>
+              Select questions from your question
+              bank and add them to this examination.
+            </p>
+          </div>
+
+          <div className="assign-card-controls">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                router.push(
+                  `/examiner/questions/create?exam=${selectedExam}`
+                )
+              }
+            >
+              + Create Question
+            </button>
+
+            <button
+              className="secondary-button"
+              onClick={() =>
+                router.push(
+                  `/examiner/questions/import?exam=${selectedExam}`
+                )
+              }
+            >
+              ↑ Import Questions
+            </button>
+
+            <button
+              className="primary-button assign-button"
+              onClick={handleAddToExam}
+              disabled={
+                adding || selectedQuestions.length === 0
+              }
+            >
+              {adding
+                ? "Adding..."
+                : `Add Selected (${selectedQuestions.length})`}
+            </button>
+          </div>
+        </div>
+
+        <div className="bank-card">
+          <div className="bank-card-header">
+            <div>
+              <span className="section-label">QUESTION BANK</span>
+
+              <h2>Available Questions</h2>
+
+              <p>
+                Questions already assigned to this
+                examination are hidden.
               </p>
             </div>
 
             <div className="question-actions">
+              <button
+                className="primary-button"
+                onClick={() =>
+                  router.push(
+                    `/examiner/questions/create?exam=${selectedExam}`
+                  )
+                }
+              >
+                + Create Question
+              </button>
 
-  <button
-    className="secondary-button"
-    onClick={() =>
-      router.push("/examiner/questions/import")
-    }
-  >
-    ↑ Import Questions
-  </button>
-
-  <button
-    className="primary-button"
-    onClick={() =>
-      router.push("/examiner/questions/create")
-    }
-  >
-    + Create Question
-  </button>
-
-</div>
-
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  router.push(
+                    `/examiner/questions/import?exam=${selectedExam}`
+                  )
+                }
+              >
+                ↑ Import
+              </button>
+            </div>
           </div>
 
-
-          {/* SEARCH */}
-
           <div className="search-box">
-
-            <span>⌕</span>
+            <span>🔍</span>
 
             <input
               type="text"
-              placeholder="Search by question or subject..."
+              placeholder="Search questions or subjects..."
               value={search}
               onChange={(event) =>
-                setSearch(
-                  event.target.value
-                )
+                setSearch(event.target.value)
               }
             />
-
           </div>
 
-
-          {/* FILTERS */}
-
           <div className="advanced-filters">
-
             <div className="filter-group">
-
-              <label>
-                Subject
-              </label>
-
+              <label>Subject</label>
               <select
                 value={subjectFilter}
                 onChange={(event) =>
-                  setSubjectFilter(
-                    event.target.value
-                  )
+                  setSubjectFilter(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All Subjects
-                </option>
-
-                {subjects.map(
-                  (subject) => (
-                    <option
-                      key={subject}
-                      value={subject}
-                    >
-                      {subject}
-                    </option>
-                  )
-                )}
-
+                {subjects.map((subject) => (
+                  <option key={subject} value={subject}>
+                    {subject}
+                  </option>
+                ))}
               </select>
-
             </div>
 
-
             <div className="filter-group">
-
-              <label>
-                Difficulty
-              </label>
-
+              <label>Difficulty</label>
               <select
                 value={difficultyFilter}
                 onChange={(event) =>
-                  setDifficultyFilter(
-                    event.target.value
-                  )
+                  setDifficultyFilter(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All Difficulties
-                </option>
-
-                <option value="Easy">
-                  Easy
-                </option>
-
-                <option value="Medium">
-                  Medium
-                </option>
-
-                <option value="Hard">
-                  Hard
-                </option>
-
+                {difficulties.map((difficulty) => (
+                  <option key={difficulty} value={difficulty}>
+                    {difficulty}
+                  </option>
+                ))}
               </select>
-
             </div>
 
-
             <div className="filter-group">
-
-              <label>
-                Question Type
-              </label>
-
+              <label>Question Type</label>
               <select
                 value={typeFilter}
                 onChange={(event) =>
-                  setTypeFilter(
-                    event.target.value
-                  )
+                  setTypeFilter(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All Types
-                </option>
-
-                {questionTypes.map(
-                  (type) => (
-                    <option
-                      key={type}
-                      value={type}
-                    >
-                      {type}
-                    </option>
-                  )
-                )}
-
+                {questionTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
-
             </div>
 
-
             <div className="filter-group">
-
-              <label>
-                Marks
-              </label>
-
+              <label>Marks</label>
               <select
                 value={marksFilter}
                 onChange={(event) =>
-                  setMarksFilter(
-                    event.target.value
-                  )
+                  setMarksFilter(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All Marks
-                </option>
-
-                {markValues.map(
-                  (marks) => (
-                    <option
-                      key={marks}
-                      value={marks}
-                    >
-                      {marks}{" "}
-                      {marks === 1
-                        ? "Mark"
-                        : "Marks"}
-                    </option>
-                  )
-                )}
-
+                {marksOptions.map((marks) => (
+                  <option key={marks} value={marks}>
+                    {marks === "All"
+                      ? "All"
+                      : `${marks} Marks`}
+                  </option>
+                ))}
               </select>
-
             </div>
-
 
             <button
               className="clear-filter-button"
@@ -836,215 +1261,168 @@ export default function QuestionsPage() {
             >
               Clear Filters
             </button>
-
           </div>
-
-
-          {/* RESULT BAR */}
 
           <div className="filter-result-bar">
+            <span>
+              Showing{" "}
+              <strong>{selectableQuestions.length}</strong>{" "}
+              available question
+              {selectableQuestions.length !== 1 ? "s" : ""}
+            </span>
 
-            <div>
-              <strong>
-                {filteredQuestions.length}
-              </strong>{" "}
-              question
-              {filteredQuestions.length !== 1
-                ? "s"
-                : ""}{" "}
-              found
-            </div>
-
-            <button
-              className="select-all-button"
-              onClick={handleSelectAll}
-              disabled={
-                filteredQuestions.length === 0
-              }
-            >
-              {allFilteredSelected
-                ? "Clear Filtered Selection"
-                : "Select All Filtered"}
-            </button>
-
+            {selectableQuestions.length > 0 && (
+              <button
+                className="select-all-button"
+                onClick={handleSelectAll}
+              >
+                Select Available
+              </button>
+            )}
           </div>
 
-
-          {/* QUESTIONS */}
-
-          {loading ? (
-
-            <div className="empty-question-state">
-
-              <div className="loading-spinner"></div>
-
-              <h4>
-                Loading questions...
-              </h4>
-
-              <p>
-                Getting your saved questions.
-              </p>
-
-            </div>
-
-          ) : filteredQuestions.length === 0 ? (
-
-            <div className="empty-question-state">
-
-              <div className="empty-icon">
-                ?
+          {assignedLoading ? (
+            <div className="questions-loading">
+              <div className="loading-card">
+                <div className="loading-spinner"></div>
+                <p>Loading assigned questions...</p>
               </div>
-
-              <h4>
-                {questions.length === 0
-                  ? "No questions available yet"
-                  : "No questions match your filters"}
-              </h4>
-
-              <p>
-                {questions.length === 0
-                  ? "Create your first question to start building your question bank."
-                  : "Try changing your filters or clearing them."}
-              </p>
-
-              {questions.length === 0 && (
-                <button
-                  className="secondary-button"
-                  onClick={() =>
-                    router.push(
-                      "/examiner/questions/create"
-                    )
-                  }
-                >
-                  + Create Question
-                </button>
-              )}
-
             </div>
+          ) : selectableQuestions.length === 0 ? (
+            <div className="empty-question-state">
+              <div className="empty-icon">📚</div>
 
+              {questions.length === 0 ? (
+                <>
+                  <h3>Your question bank is empty</h3>
+                  <p>
+                    Create your first question or import
+                    questions to start building the
+                    examination.
+                  </p>
+                  <button
+                    className="primary-button"
+                    onClick={() =>
+                      router.push(
+                        `/examiner/questions/create?exam=${selectedExam}`
+                      )
+                    }
+                  >
+                    + Create Question
+                  </button>
+                </>
+              ) : questionProgress.total >=
+                Number(currentExam?.total_questions || 0) ? (
+                <>
+                  <h3>All questions have been added</h3>
+                  <p>
+                    This examination already has the
+                    required number of questions.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3>No matching questions</h3>
+                  <p>Try changing your search or filters.</p>
+                  <button
+                    className="secondary-button"
+                    onClick={clearFilters}
+                  >
+                    Clear Filters
+                  </button>
+                </>
+              )}
+            </div>
           ) : (
-
             <div className="questions-list">
+              {selectableQuestions.map((question, index) => {
+                const isSelected = selectedQuestions.includes(
+                  question.id
+                );
 
-              {filteredQuestions.map(
-                (question, index) => {
+                const canSelect = canSelectQuestion(question);
 
-                  const selected =
-                    selectedQuestions.includes(
-                      question.id
-                    );
+                const normalizedType = normalizeQuestionType(
+                  question.question_type
+                );
 
-                  return (
-                    <div
-                      className={
-                        selected
-                          ? "question-item selected"
-                          : "question-item"
-                      }
-                      key={question.id}
-                    >
-
-                      <button
-                        type="button"
-                        className={
-                          selected
-                            ? "question-checkbox checked"
-                            : "question-checkbox"
+                return (
+                  <div
+                    key={question.id}
+                    className={`question-item ${
+                      isSelected ? "selected" : ""
+                    } ${!canSelect ? "disabled" : ""}`}
+                  >
+                    <div className="question-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={!canSelect && !isSelected}
+                        onChange={() =>
+                          handleSelectQuestion(question)
                         }
-                        onClick={() =>
-                          handleSelectQuestion(
-                            question.id
-                          )
-                        }
-                      >
-                        {selected ? "✓" : ""}
-                      </button>
+                      />
+                    </div>
 
+                    <div className="question-main">
+                      <div className="question-meta">
+                        <span className="subject-badge">
+                          {question.subject || "General"}
+                        </span>
 
-                      <div className="question-main">
+                        <span className="difficulty-badge">
+                          {question.difficulty || "N/A"}
+                        </span>
 
-                        <div className="question-meta">
-
-                          <span>
-                            Question {index + 1}
-                          </span>
-
-                          <span className="subject-badge">
-                            {question.subject}
-                          </span>
-
-                          <span
-                            className={`difficulty-badge ${question.difficulty.toLowerCase()}`}
-                          >
-                            {question.difficulty}
-                          </span>
-
-                          <span className="type-badge">
-                            {question.question_type}
-                          </span>
-
-                        </div>
-
-
-                        <h4>
-                          {question.question_text}
-                        </h4>
-
-
-                        {question.question_type ===
-                          "MCQ" && (
-
-                          <div className="question-options">
-
-                            <span>
-                              A.{" "}
-                              {question.option_a}
-                            </span>
-
-                            <span>
-                              B.{" "}
-                              {question.option_b}
-                            </span>
-
-                            <span>
-                              C.{" "}
-                              {question.option_c}
-                            </span>
-
-                            <span>
-                              D.{" "}
-                              {question.option_d}
-                            </span>
-
-                          </div>
-
-                        )}
-
-
-                        <div className="question-footer">
-
-                          {question.marks}{" "}
-                          {question.marks === 1
-                            ? "mark"
-                            : "marks"}
-
-                        </div>
-
+                        <span className="type-badge">
+                          {normalizedType === "mcq"
+                            ? "MCQ"
+                            : normalizedType === "true_false"
+                            ? "True/False"
+                            : normalizedType === "short_answer"
+                            ? "Short Answer"
+                            : normalizedType === "long_answer"
+                            ? "Long Answer"
+                            : question.question_type}
+                        </span>
                       </div>
 
+                      <div className="question-text">
+                        <strong>Q{index + 1}.</strong>{" "}
+                        {question.question_text}
+                      </div>
+
+                      {normalizedType === "mcq" && (
+                        <div className="question-options">
+                          {question.option_a && (
+                            <span>A. {question.option_a}</span>
+                          )}
+                          {question.option_b && (
+                            <span>B. {question.option_b}</span>
+                          )}
+                          {question.option_c && (
+                            <span>C. {question.option_c}</span>
+                          )}
+                          {question.option_d && (
+                            <span>D. {question.option_d}</span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="question-footer">
+                        <span>
+                          Marks:{" "}
+                          <strong>{question.marks}</strong>
+                        </span>
+                      </div>
                     </div>
-                  );
-                }
-              )}
-
+                  </div>
+                );
+              })}
             </div>
-
           )}
-
-        </section>
-
-      </section>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }

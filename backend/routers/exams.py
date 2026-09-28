@@ -2,7 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Exam, Question, ExamQuestion
+from models import (
+    Exam,
+    Question,
+    ExamQuestion,
+    ExamAttempt,
+    StudentAnswer,
+    User,
+)
 from schemas import (
     ExamCreate,
     ExamResponse,
@@ -56,6 +63,36 @@ def create_exam(
             detail="Total questions must be greater than 0"
         )
 
+    question_counts = {
+        "MCQ": exam_data.mcq_questions,
+        "True/False": exam_data.true_false_questions,
+        "Short Answer": exam_data.short_answer_questions,
+        "Long Answer": exam_data.long_answer_questions,
+    }
+
+    if any(count < 0 for count in question_counts.values()):
+        raise HTTPException(
+            status_code=400,
+            detail="Question type counts cannot be negative"
+        )
+
+    count_total = sum(question_counts.values())
+
+    if count_total <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Please specify at least one question across the four question types"
+        )
+
+    if count_total != exam_data.total_questions:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Question type counts must add up to {exam_data.total_questions}. "
+                f"Currently they add up to {count_total}."
+            )
+        )
+
     if exam_data.maximum_marks <= 0:
         raise HTTPException(
             status_code=400,
@@ -76,6 +113,10 @@ def create_exam(
         start_time=exam_data.start_time,
         end_time=exam_data.end_time,
         total_questions=exam_data.total_questions,
+        mcq_questions=exam_data.mcq_questions,
+        true_false_questions=exam_data.true_false_questions,
+        short_answer_questions=exam_data.short_answer_questions,
+        long_answer_questions=exam_data.long_answer_questions,
         maximum_marks=exam_data.maximum_marks
     )
 
@@ -280,7 +321,7 @@ def normalize_question_type(value):
         "long answer",
         "long response"
     ]:
-        return "Essay"
+        return "Long Answer"
 
     return "MCQ"
 
@@ -782,14 +823,12 @@ def add_questions_to_exam(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
     if current_user.role != "examiner":
         raise HTTPException(
             status_code=403,
             detail="Only examiners can add questions"
         )
 
-    # Check that the exam belongs to this examiner
     exam = (
         db.query(Exam)
         .filter(
@@ -811,12 +850,8 @@ def add_questions_to_exam(
             detail="Please select at least one question"
         )
 
-    # Prevent duplicate question IDs
-    unique_question_ids = list(
-        dict.fromkeys(question_data.question_ids)
-    )
+    unique_question_ids = list(dict.fromkeys(question_data.question_ids))
 
-    # Check that all questions belong to this examiner
     questions = (
         db.query(Question)
         .filter(
@@ -832,47 +867,249 @@ def add_questions_to_exam(
             detail="One or more questions are invalid"
         )
 
-    # Remove previous question assignments
-    db.query(ExamQuestion).filter(
-        ExamQuestion.exam_id == exam_id
-    ).delete(
-        synchronize_session=False
+    # Questions already assigned to this examination are kept.
+    # This allows the examiner to add questions in multiple batches.
+    existing_rows = (
+        db.query(ExamQuestion)
+        .filter(ExamQuestion.exam_id == exam_id)
+        .order_by(ExamQuestion.question_order.asc())
+        .all()
     )
 
-    # Randomize question order
-    import random
+    existing_ids = {row.question_id for row in existing_rows}
+    new_question_ids = [
+        question_id
+        for question_id in unique_question_ids
+        if question_id not in existing_ids
+    ]
 
-    randomized_ids = unique_question_ids.copy()
-    random.shuffle(randomized_ids)
-
-    exam_questions = []
-
-    for order, question_id in enumerate(
-        randomized_ids,
-        start=1
-    ):
-        exam_question = ExamQuestion(
-            exam_id=exam_id,
-            question_id=question_id,
-            question_order=order
+    if not new_question_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="All selected questions are already added to this examination"
         )
 
-        db.add(exam_question)
-        exam_questions.append(exam_question)
+    existing_questions = []
+    if existing_ids:
+        existing_questions = (
+            db.query(Question)
+            .filter(
+                Question.id.in_(list(existing_ids)),
+                Question.examiner_id == current_user.id
+            )
+            .all()
+        )
+
+    def normalized_type(value):
+        text = (value or "").strip().lower()
+        if text in {"mcq", "multiple choice", "multiple choice question"}:
+            return "MCQ"
+        if text in {"true/false", "true false", "true or false", "boolean"}:
+            return "True/False"
+        if text in {"short answer", "short response", "short"}:
+            return "Short Answer"
+        if text in {"long answer", "long response", "essay", "long"}:
+            return "Long Answer"
+        return value
+
+    required = {
+        "MCQ": exam.mcq_questions,
+        "True/False": exam.true_false_questions,
+        "Short Answer": exam.short_answer_questions,
+        "Long Answer": exam.long_answer_questions,
+    }
+
+    all_questions = existing_questions + questions
+    counts = {key: 0 for key in required}
+    for question in all_questions:
+        question_type = normalized_type(question.question_type)
+        if question_type not in counts:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f'Question "{question.question_text[:60]}" has unsupported '
+                    f'type "{question.question_type}".'
+                )
+            )
+        counts[question_type] += 1
+
+    total_after = len(existing_rows) + len(new_question_ids)
+
+    if total_after > exam.total_questions:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"This examination allows only {exam.total_questions} questions. "
+                f"You already have {len(existing_rows)} and are trying to add "
+                f"{len(new_question_ids)} more."
+            )
+        )
+
+    for question_type, required_count in required.items():
+        if counts[question_type] > required_count:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Question limit reached for {question_type}. "
+                    f"Required: {required_count}, selected/assigned: "
+                    f"{counts[question_type]}."
+                )
+            )
+
+    # Randomize only the newly added questions, while keeping existing order.
+    import random
+    randomized_ids = new_question_ids.copy()
+    random.shuffle(randomized_ids)
+
+    next_order = len(existing_rows) + 1
+    for offset, question_id in enumerate(randomized_ids):
+        db.add(
+            ExamQuestion(
+                exam_id=exam_id,
+                question_id=question_id,
+                question_order=next_order + offset
+            )
+        )
 
     db.commit()
 
-    for item in exam_questions:
+    updated_rows = (
+        db.query(ExamQuestion)
+        .filter(ExamQuestion.exam_id == exam_id)
+        .order_by(ExamQuestion.question_order.asc())
+        .all()
+    )
+
+    for item in updated_rows:
         db.refresh(item)
 
-    return exam_questions
+    return updated_rows
 
 
-@router.get(
-    "/{exam_id}/questions",
-    response_model=list[ExamQuestionResponse]
-)
+@router.get("/{exam_id}/questions")
 def get_exam_questions(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # ------------------------------------------------------------
+    # Examiner authentication
+    # ------------------------------------------------------------
+
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can view examination questions.",
+        )
+
+    # ------------------------------------------------------------
+    # Check examination ownership
+    # ------------------------------------------------------------
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found.",
+        )
+
+    # ------------------------------------------------------------
+    # Get assigned questions in final order
+    # ------------------------------------------------------------
+
+    exam_questions = (
+        db.query(ExamQuestion)
+        .filter(
+            ExamQuestion.exam_id == exam_id
+        )
+        .order_by(
+            ExamQuestion.question_order.asc()
+        )
+        .all()
+    )
+
+    result = []
+
+    for exam_question in exam_questions:
+
+        question = (
+            db.query(Question)
+            .filter(
+                Question.id ==
+                exam_question.question_id
+            )
+            .first()
+        )
+
+        if not question:
+            continue
+
+        result.append({
+            "id": exam_question.id,
+
+            "exam_id": exam_question.exam_id,
+
+            "question_id":
+                exam_question.question_id,
+
+            "question_order":
+                exam_question.question_order,
+
+            "question": {
+                "id": question.id,
+
+                "examiner_id":
+                    question.examiner_id,
+
+                "subject":
+                    question.subject,
+
+                "question_text":
+                    question.question_text,
+
+                "question_type":
+                    question.question_type,
+
+                "difficulty":
+                    question.difficulty,
+
+                "option_a":
+                    question.option_a,
+
+                "option_b":
+                    question.option_b,
+
+                "option_c":
+                    question.option_c,
+
+                "option_d":
+                    question.option_d,
+
+                "correct_answer":
+                    question.correct_answer,
+
+                "marks":
+                    question.marks,
+
+                "created_at":
+                    question.created_at,
+            },
+        })
+
+    return result
+    
+@router.get(
+    "/{exam_id}/submissions"
+)
+def get_exam_submissions(
     exam_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
@@ -880,8 +1117,12 @@ def get_exam_questions(
     if current_user.role != "examiner":
         raise HTTPException(
             status_code=403,
-            detail="Only examiners can view examination questions"
+            detail="Only examiners can view submissions"
         )
+
+    # --------------------------------------------------------
+    # Find examiner's examination
+    # --------------------------------------------------------
 
     exam = (
         db.query(Exam)
@@ -898,6 +1139,125 @@ def get_exam_questions(
             detail="Examination not found"
         )
 
+    # --------------------------------------------------------
+    # Find submitted attempts
+    # --------------------------------------------------------
+
+    attempts = (
+        db.query(ExamAttempt)
+        .filter(
+            ExamAttempt.exam_id == exam_id,
+            ExamAttempt.status == "submitted"
+        )
+        .order_by(
+            ExamAttempt.submitted_at.desc()
+        )
+        .all()
+    )
+
+    submissions = []
+
+    for attempt in attempts:
+
+        student = (
+            db.query(User)
+            .filter(
+                User.id == attempt.student_id
+            )
+            .first()
+        )
+
+        submissions.append({
+            "attempt_id": attempt.id,
+            "student_id": attempt.student_id,
+            "student_name": student.name if student else "Unknown Student",
+            "student_email": student.email if student else "",
+            "submitted_at": attempt.submitted_at,
+            "score": attempt.score or 0,
+            "maximum_marks": exam.maximum_marks,
+            "status": attempt.status,
+        })
+
+    return {
+        "exam_id": exam.id,
+        "exam_name": exam.exam_name,
+        "subject": exam.subject,
+        "maximum_marks": exam.maximum_marks,
+        "result_published": exam.result_published,
+        "submissions": submissions,
+    }
+
+
+@router.get(
+    "/{exam_id}/submissions/{attempt_id}"
+)
+def get_submission_details(
+    exam_id: int,
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can view submissions"
+        )
+
+    # --------------------------------------------------------
+    # Find examiner's examination
+    # --------------------------------------------------------
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found"
+        )
+
+    # --------------------------------------------------------
+    # Find submitted attempt
+    # --------------------------------------------------------
+
+    attempt = (
+        db.query(ExamAttempt)
+        .filter(
+            ExamAttempt.id == attempt_id,
+            ExamAttempt.exam_id == exam_id,
+            ExamAttempt.status == "submitted"
+        )
+        .first()
+    )
+
+    if not attempt:
+        raise HTTPException(
+            status_code=404,
+            detail="Submitted examination not found"
+        )
+
+    # --------------------------------------------------------
+    # Find student
+    # --------------------------------------------------------
+
+    student = (
+        db.query(User)
+        .filter(
+            User.id == attempt.student_id
+        )
+        .first()
+    )
+
+    # --------------------------------------------------------
+    # Get exam questions
+    # --------------------------------------------------------
+
     exam_questions = (
         db.query(ExamQuestion)
         .filter(
@@ -909,7 +1269,118 @@ def get_exam_questions(
         .all()
     )
 
-    return exam_questions
+    # --------------------------------------------------------
+    # Get student's answers
+    # --------------------------------------------------------
+
+    student_answers = (
+        db.query(StudentAnswer)
+        .filter(
+            StudentAnswer.attempt_id == attempt.id
+        )
+        .all()
+    )
+
+    answer_map = {
+        answer.question_id: answer
+        for answer in student_answers
+    }
+
+    questions = []
+
+    for exam_question in exam_questions:
+
+        question = (
+            db.query(Question)
+            .filter(
+                Question.id == exam_question.question_id
+            )
+            .first()
+        )
+
+        if not question:
+            continue
+
+        answer = answer_map.get(
+            question.id
+        )
+
+        questions.append({
+            "question_id": question.id,
+            "question_order": exam_question.question_order,
+            "question_text": question.question_text,
+            "question_type": question.question_type,
+
+            "option_a": question.option_a,
+            "option_b": question.option_b,
+            "option_c": question.option_c,
+            "option_d": question.option_d,
+
+            "correct_answer": question.correct_answer,
+
+            "maximum_marks": question.marks,
+
+            "student_answer": (
+                answer.selected_answer
+                if answer
+                else None
+            ),
+
+            "is_correct": (
+                answer.is_correct
+                if answer
+                else None
+            ),
+
+            "marks_awarded": (
+                answer.marks_awarded
+                if answer
+                else 0
+            ),
+
+            "needs_manual_check": (
+                question.question_type
+                in [
+                    "Short Answer",
+                    "Long Answer",
+                    "short answer",
+                    "long answer",
+                    "Short",
+                    "Long",
+                    "Essay",
+                    "essay",
+                ]
+            ),
+        })
+
+    return {
+        "exam_id": exam.id,
+        "exam_name": exam.exam_name,
+        "subject": exam.subject,
+
+        "attempt_id": attempt.id,
+
+        "student_id": attempt.student_id,
+        "student_name": (
+            student.name
+            if student
+            else "Unknown Student"
+        ),
+        "student_email": (
+            student.email
+            if student
+            else ""
+        ),
+
+        "submitted_at": attempt.submitted_at,
+
+        "score": attempt.score or 0,
+        "maximum_marks": exam.maximum_marks,
+
+        "result_published": exam.result_published,
+
+        "questions": questions,
+    }
 
 @router.patch(
     "/{exam_id}/publish",
@@ -940,6 +1411,71 @@ def publish_exam(
         raise HTTPException(
             status_code=404,
             detail="Examination not found"
+        )
+
+    assigned_rows = (
+        db.query(ExamQuestion)
+        .filter(ExamQuestion.exam_id == exam_id)
+        .all()
+    )
+
+    if len(assigned_rows) != exam.total_questions:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot publish this examination yet. "
+                f"Add all {exam.total_questions} required questions first. "
+                f"Currently assigned: {len(assigned_rows)}."
+            )
+        )
+
+    assigned_ids = [row.question_id for row in assigned_rows]
+    assigned_questions = (
+        db.query(Question)
+        .filter(Question.id.in_(assigned_ids))
+        .all()
+    )
+
+    def normalized_type(value):
+        text = (value or "").strip().lower()
+        if text in {"mcq", "multiple choice", "multiple choice question"}:
+            return "MCQ"
+        if text in {"true/false", "true false", "true or false", "boolean"}:
+            return "True/False"
+        if text in {"short answer", "short response", "short"}:
+            return "Short Answer"
+        if text in {"long answer", "long response", "essay", "long"}:
+            return "Long Answer"
+        return value
+
+    actual_counts = {
+        "MCQ": 0,
+        "True/False": 0,
+        "Short Answer": 0,
+        "Long Answer": 0,
+    }
+    for question in assigned_questions:
+        question_type = normalized_type(question.question_type)
+        if question_type in actual_counts:
+            actual_counts[question_type] += 1
+
+    required_counts = {
+        "MCQ": exam.mcq_questions,
+        "True/False": exam.true_false_questions,
+        "Short Answer": exam.short_answer_questions,
+        "Long Answer": exam.long_answer_questions,
+    }
+
+    if actual_counts != required_counts:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Cannot publish yet. Required question mix is "
+                f"MCQ {exam.mcq_questions}, True/False {exam.true_false_questions}, "
+                f"Short Answer {exam.short_answer_questions}, "
+                f"Long Answer {exam.long_answer_questions}. "
+                "Please complete the required question mix."
+            )
         )
 
     exam.is_published = True
@@ -982,6 +1518,322 @@ def unpublish_exam(
         )
 
     exam.is_published = False
+
+    db.commit()
+    db.refresh(exam)
+
+    return exam
+
+
+@router.patch(
+    "/{exam_id}/submissions/{attempt_id}/answers/{question_id}"
+)
+def update_student_answer_marks(
+    exam_id: int,
+    attempt_id: int,
+    question_id: int,
+    marks_awarded: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can check answers"
+        )
+
+    # --------------------------------------------------------
+    # Find examiner's exam
+    # --------------------------------------------------------
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found"
+        )
+
+    # --------------------------------------------------------
+    # Find attempt
+    # --------------------------------------------------------
+
+    attempt = (
+        db.query(ExamAttempt)
+        .filter(
+            ExamAttempt.id == attempt_id,
+            ExamAttempt.exam_id == exam_id,
+            ExamAttempt.status == "submitted"
+        )
+        .first()
+    )
+
+    if not attempt:
+        raise HTTPException(
+            status_code=404,
+            detail="Submitted examination not found"
+        )
+
+    # --------------------------------------------------------
+    # Find question
+    # --------------------------------------------------------
+
+    question = (
+        db.query(Question)
+        .join(
+            ExamQuestion,
+            ExamQuestion.question_id == Question.id
+        )
+        .filter(
+            ExamQuestion.exam_id == exam_id,
+            Question.id == question_id
+        )
+        .first()
+    )
+
+    if not question:
+        raise HTTPException(
+            status_code=404,
+            detail="Question not found in this examination"
+        )
+
+    # --------------------------------------------------------
+    # Validate marks
+    # --------------------------------------------------------
+
+    if marks_awarded < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Marks cannot be negative"
+        )
+
+    if marks_awarded > question.marks:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Marks cannot be greater than "
+                f"{question.marks}"
+            )
+        )
+
+    # --------------------------------------------------------
+    # Find student's answer
+    # --------------------------------------------------------
+
+    answer = (
+        db.query(StudentAnswer)
+        .filter(
+            StudentAnswer.attempt_id == attempt_id,
+            StudentAnswer.question_id == question_id
+        )
+        .first()
+    )
+
+    # --------------------------------------------------------
+    # Student did not answer this question
+    # --------------------------------------------------------
+
+    if not answer:
+
+        if marks_awarded != 0:
+            raise HTTPException(
+                status_code=400,
+                detail="An unanswered question cannot receive marks."
+            )
+
+        answer = StudentAnswer(
+            attempt_id=attempt_id,
+            question_id=question_id,
+            selected_answer=None,
+            marks_awarded=0,
+            is_correct=False
+        )
+
+        db.add(answer)
+
+    else:
+
+        answer.marks_awarded = marks_awarded
+
+        # For manual questions, marks determine whether
+        # the answer receives credit.
+        answer.is_correct = (
+            marks_awarded > 0
+        )
+
+    db.commit()
+
+    # --------------------------------------------------------
+    # Recalculate total score
+    # --------------------------------------------------------
+
+    all_answers = (
+        db.query(StudentAnswer)
+        .filter(
+            StudentAnswer.attempt_id == attempt_id
+        )
+        .all()
+    )
+
+    total_score = sum(
+        answer.marks_awarded or 0
+        for answer in all_answers
+    )
+
+    attempt.score = total_score
+
+    db.commit()
+
+    return {
+        "message": "Marks updated successfully.",
+        "attempt_id": attempt.id,
+        "question_id": question_id,
+        "marks_awarded": marks_awarded,
+        "total_score": total_score,
+        "maximum_marks": exam.maximum_marks,
+    }
+
+@router.patch(
+    "/{exam_id}/publish-result",
+    response_model=ExamResponse
+)
+def publish_result(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    if current_user.role != "examiner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only examiners can publish results"
+        )
+
+    # --------------------------------------------------------
+    # Find examiner's exam
+    # --------------------------------------------------------
+
+    exam = (
+        db.query(Exam)
+        .filter(
+            Exam.id == exam_id,
+            Exam.examiner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not exam:
+        raise HTTPException(
+            status_code=404,
+            detail="Examination not found"
+        )
+
+    # --------------------------------------------------------
+    # Find submitted attempts
+    # --------------------------------------------------------
+
+    attempts = (
+        db.query(ExamAttempt)
+        .filter(
+            ExamAttempt.exam_id == exam_id,
+            ExamAttempt.status == "submitted"
+        )
+        .all()
+    )
+
+    # --------------------------------------------------------
+    # Check manually graded answers
+    # --------------------------------------------------------
+
+    for attempt in attempts:
+
+        answers = (
+            db.query(StudentAnswer)
+            .filter(
+                StudentAnswer.attempt_id == attempt.id
+            )
+            .all()
+        )
+
+        for answer in answers:
+
+            question = (
+                db.query(Question)
+                .filter(
+                    Question.id == answer.question_id
+                )
+                .first()
+            )
+
+            if not question:
+                continue
+
+            question_type = (
+                question.question_type or ""
+            ).strip().lower()
+
+            is_manual_question = (
+                question_type in {
+                    "short answer",
+                    "short response",
+                    "short",
+                    "long answer",
+                    "long response",
+                    "essay",
+                    "long",
+                }
+            )
+
+            if is_manual_question:
+
+                # If student answered, examiner must
+                # explicitly check it.
+                if (
+                    answer.selected_answer
+                    and
+                    answer.is_correct is None
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"All descriptive answers must be "
+                            f"checked before publishing results. "
+                            f"Attempt {attempt.id}, "
+                            f"Question {question.id} "
+                            f"is still pending."
+                        )
+                    )
+
+    # --------------------------------------------------------
+    # Recalculate every submitted student's score
+    # --------------------------------------------------------
+
+    for attempt in attempts:
+
+        answers = (
+            db.query(StudentAnswer)
+            .filter(
+                StudentAnswer.attempt_id == attempt.id
+            )
+            .all()
+        )
+
+        attempt.score = sum(
+            answer.marks_awarded or 0
+            for answer in answers
+        )
+
+    # --------------------------------------------------------
+    # Publish result
+    # --------------------------------------------------------
+
+    exam.result_published = True
 
     db.commit()
     db.refresh(exam)

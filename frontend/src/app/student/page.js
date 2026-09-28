@@ -13,7 +13,6 @@ export default function StudentDashboard() {
   const [completedExams, setCompletedExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [startingExamId, setStartingExamId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -75,17 +74,6 @@ export default function StudentDashboard() {
     } finally {
       setLoading(false);
     }
-  }
-
-  // ============================================================
-  // LOGOUT
-  // ============================================================
-
-  function handleLogout() {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("role");
-
-    router.push("/login");
   }
 
   // ============================================================
@@ -167,12 +155,8 @@ export default function StudentDashboard() {
   // START EXAMINATION
   // ============================================================
 
-  async function handleStartExam(exam) {
+  function handleStartExam(exam) {
     const status = getExamStatus(exam);
-
-    // ----------------------------------------------------------
-    // Upcoming examination
-    // ----------------------------------------------------------
 
     if (status.label === "Upcoming") {
       alert(
@@ -180,74 +164,26 @@ export default function StudentDashboard() {
           exam.start_time
         )}.`
       );
-
       return;
     }
-
-    // ----------------------------------------------------------
-    // Submitted examination
-    // ----------------------------------------------------------
 
     if (status.label === "Completed") {
       router.push(
         `/student/exams/${exam.id}/result`
       );
-
       return;
     }
 
-    // ----------------------------------------------------------
-    // Start or continue examination
-    // ----------------------------------------------------------
-
-    try {
-      setStartingExamId(exam.id);
-
-      const token =
-        localStorage.getItem("access_token");
-
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      const response = await fetch(
-        `http://127.0.0.1:8000/exams/student/${exam.id}/start`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "Unable to start examination."
-        );
-      }
-
-      // --------------------------------------------------------
-      // Backend returns existing attempt if already in progress
-      // or creates a new attempt.
-      // --------------------------------------------------------
-
+    if (status.label === "In Progress") {
       router.push(
         `/student/exams/${exam.id}/attempt`
       );
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        error.message ||
-          "Unable to start examination."
-      );
-    } finally {
-      setStartingExamId(null);
+      return;
     }
+
+    router.push(
+      `/student/exams/${exam.id}/instructions`
+    );
   }
 
   // ============================================================
@@ -293,77 +229,25 @@ export default function StudentDashboard() {
   return (
     <main className="student-page">
 
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
-
-      <header className="student-header">
-
-        <div className="student-brand">
-
-          <div className="student-brand-icon">
-            AI
-          </div>
-
-          <div>
-            <h2>AI Examination</h2>
-            <span>Student Portal</span>
-          </div>
-
-        </div>
-
-        <div className="student-header-right">
-
-          <div className="student-user">
-
-            <div className="student-avatar">
-              S
-            </div>
-
-            <div>
-              <strong>Student</strong>
-              <span>Student Account</span>
-            </div>
-
-          </div>
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-
-        </div>
-
-      </header>
-
-
-      {/* ======================================================
-          CONTENT
-      ====================================================== */}
-
       <section className="student-content">
 
         {/* ====================================================
-            WELCOME
+            WELCOME / HERO
         ==================================================== */}
 
-        <div className="student-welcome">
+        <div className="student-hero">
+          <div className="student-hero-icon">🎓</div>
 
-          <p className="welcome-label">
-            STUDENT DASHBOARD
-          </p>
+          <div className="student-hero-content">
+            <p className="welcome-label">STUDENT DASHBOARD</p>
 
-          <h1>
-            Welcome to your examinations
-          </h1>
+            <h1>Welcome to your examinations</h1>
 
-          <p>
-            View your upcoming, active, and completed
-            examinations from your student portal.
-          </p>
-
+            <p>
+              View your upcoming, active, and completed
+              examinations from your student portal.
+            </p>
+          </div>
         </div>
 
 
@@ -373,18 +257,11 @@ export default function StudentDashboard() {
 
         {!loading && error && (
           <div className="student-state-card error-card">
+            <div className="state-icon">!</div>
 
-            <div className="state-icon">
-              !
-            </div>
+            <h3>Unable to load examinations</h3>
 
-            <h3>
-              Unable to load examinations
-            </h3>
-
-            <p>
-              {error}
-            </p>
+            <p>{error}</p>
 
             <button
               className="retry-button"
@@ -392,7 +269,6 @@ export default function StudentDashboard() {
             >
               Try Again
             </button>
-
           </div>
         )}
 
@@ -403,226 +279,132 @@ export default function StudentDashboard() {
 
         {loading && (
           <div className="student-state-card">
-
             <div className="loading-spinner"></div>
 
-            <h3>
-              Loading examinations...
-            </h3>
+            <h3>Loading examinations...</h3>
 
             <p>
               Please wait while we fetch your examinations.
             </p>
-
           </div>
         )}
 
 
         {!loading && !error && (
           <>
-
             {/* ==================================================
                 AVAILABLE EXAMINATIONS
             ================================================== */}
 
-            <section className="student-section">
+            <section
+              className="student-section"
+              id="available"
+            >
 
-              <div className="section-heading">
-
+              <div className="student-section-heading">
                 <div>
+                  <p className="section-label">AVAILABLE</p>
 
-                  <p className="section-label">
-                    AVAILABLE
-                  </p>
-
-                  <h2>
-                    Available Examinations
-                  </h2>
+                  <h2>Available Examinations</h2>
 
                   <p>
                     Upcoming and currently active examinations.
                   </p>
-
                 </div>
 
-                <div className="student-exam-heading-actions">
-
-                  <div className="exam-count">
-                    {exams.length} Exam
-                    {exams.length !== 1
-                      ? "s"
-                      : ""}
-                  </div>
-
+                <div className="exam-count">
+                  {exams.length} Exam
+                  {exams.length !== 1 ? "s" : ""}
                 </div>
-
               </div>
 
 
               {exams.length === 0 ? (
-
                 <div className="student-state-card">
+                  <div className="state-icon">📝</div>
 
-                  <div className="state-icon">
-                    📝
-                  </div>
-
-                  <h3>
-                    No available examinations
-                  </h3>
+                  <h3>No available examinations</h3>
 
                   <p>
                     There are currently no upcoming
                     or active examinations.
                   </p>
-
                 </div>
-
               ) : (
-
                 <div className="student-exam-grid">
-
                   {exams.map((exam) => {
-
-                    const status =
-                      getExamStatus(exam);
-
-                    const isStarting =
-                      startingExamId === exam.id;
+                    const status = getExamStatus(exam);
 
                     return (
                       <article
                         className="student-exam-card"
                         key={exam.id}
                       >
-
                         <div className="student-exam-top">
-
-                          <div className="student-exam-icon">
-                            📝
-                          </div>
+                          <div className="student-exam-icon">📝</div>
 
                           <span
                             className={`exam-status ${status.className}`}
                           >
                             {status.label}
                           </span>
-
                         </div>
 
-
-                        <h3>
-                          {exam.exam_name}
-                        </h3>
-
+                        <h3>{exam.exam_name}</h3>
 
                         <div className="student-exam-subject">
                           {exam.subject}
                         </div>
 
-
                         <div className="student-exam-details">
-
                           <div className="student-detail">
-
-                            <span>
-                              Duration
-                            </span>
-
+                            <span>Duration</span>
                             <strong>
                               {exam.duration_minutes} min
                             </strong>
-
                           </div>
-
 
                           <div className="student-detail">
-
-                            <span>
-                              Questions
-                            </span>
-
-                            <strong>
-                              {exam.total_questions}
-                            </strong>
-
+                            <span>Questions</span>
+                            <strong>{exam.total_questions}</strong>
                           </div>
-
 
                           <div className="student-detail">
-
-                            <span>
-                              Maximum Marks
-                            </span>
-
-                            <strong>
-                              {exam.maximum_marks}
-                            </strong>
-
+                            <span>Maximum Marks</span>
+                            <strong>{exam.maximum_marks}</strong>
                           </div>
-
                         </div>
-
 
                         <div className="student-exam-schedule">
-
                           <div>
-
-                            <span>
-                              Starts
-                            </span>
-
+                            <span>Starts</span>
                             <strong>
-                              {formatDate(
-                                exam.start_time
-                              )}
+                              {formatDate(exam.start_time)}
                             </strong>
-
                           </div>
 
                           <div>
-
-                            <span>
-                              Ends
-                            </span>
-
+                            <span>Ends</span>
                             <strong>
-                              {formatDate(
-                                exam.end_time
-                              )}
+                              {formatDate(exam.end_time)}
                             </strong>
-
                           </div>
-
                         </div>
-
 
                         <button
                           className="start-exam-button"
-                          onClick={() =>
-                            handleStartExam(exam)
-                          }
-                          disabled={
-                            isStarting
-                          }
+                          onClick={() => handleStartExam(exam)}
                         >
-                          {isStarting
-                            ? "Starting Examination..."
-                            : status.label ===
-                              "Active"
+                          {status.label === "Active"
                             ? "Start Examination →"
-                            : status.label ===
-                              "In Progress"
+                            : status.label === "In Progress"
                             ? "Continue Examination →"
                             : "Examination Not Started"}
                         </button>
-
                       </article>
                     );
                   })}
-
                 </div>
-
               )}
 
             </section>
@@ -632,181 +414,109 @@ export default function StudentDashboard() {
                 COMPLETED EXAMINATIONS
             ================================================== */}
 
-            <section className="student-section completed-section">
+            <section
+              className="student-section completed-section"
+              id="completed"
+            >
 
-              <div className="section-heading">
-
+              <div className="student-section-heading">
                 <div>
-
                   <p className="section-label completed-label">
                     HISTORY
                   </p>
 
-                  <h2>
-                    Completed Examinations
-                  </h2>
+                  <h2>Completed Examinations</h2>
 
                   <p>
                     Examinations you have successfully submitted.
                   </p>
-
                 </div>
 
                 <div className="exam-count completed-count">
                   {completedExams.length} Completed
                 </div>
-
               </div>
 
 
               {completedExams.length === 0 ? (
-
                 <div className="student-state-card">
+                  <div className="state-icon">📚</div>
 
-                  <div className="state-icon">
-                    📚
-                  </div>
-
-                  <h3>
-                    No completed examinations
-                  </h3>
+                  <h3>No completed examinations</h3>
 
                   <p>
                     Your submitted examinations will
                     appear here after you complete them.
                   </p>
-
                 </div>
-
               ) : (
-
                 <div className="student-exam-grid">
-
                   {completedExams.map((exam) => (
-
                     <article
                       className="student-exam-card completed-exam-card"
                       key={exam.id}
                     >
-
                       <div className="student-exam-top">
-
-                        <div className="student-exam-icon">
-                          ✅
-                        </div>
+                        <div className="student-exam-icon">✅</div>
 
                         <span className="exam-status completed">
                           Completed
                         </span>
-
                       </div>
 
-
-                      <h3>
-                        {exam.exam_name}
-                      </h3>
-
+                      <h3>{exam.exam_name}</h3>
 
                       <div className="student-exam-subject">
                         {exam.subject}
                       </div>
 
-
                       <div className="student-exam-details">
-
                         <div className="student-detail">
-
-                          <span>
-                            Duration
-                          </span>
-
+                          <span>Duration</span>
                           <strong>
                             {exam.duration_minutes} min
                           </strong>
-
                         </div>
-
 
                         <div className="student-detail">
-
-                          <span>
-                            Questions
-                          </span>
-
-                          <strong>
-                            {exam.total_questions}
-                          </strong>
-
+                          <span>Questions</span>
+                          <strong>{exam.total_questions}</strong>
                         </div>
-
 
                         <div className="student-detail">
-
-                          <span>
-                            Maximum Marks
-                          </span>
-
-                          <strong>
-                            {exam.maximum_marks}
-                          </strong>
-
+                          <span>Maximum Marks</span>
+                          <strong>{exam.maximum_marks}</strong>
                         </div>
-
                       </div>
-
 
                       <div className="student-exam-schedule">
-
                         <div>
-
-                          <span>
-                            Started
-                          </span>
-
+                          <span>Started</span>
                           <strong>
-                            {formatDate(
-                              exam.start_time
-                            )}
+                            {formatDate(exam.start_time)}
                           </strong>
-
                         </div>
 
                         <div>
-
-                          <span>
-                            Ended
-                          </span>
-
+                          <span>Ended</span>
                           <strong>
-                            {formatDate(
-                              exam.end_time
-                            )}
+                            {formatDate(exam.end_time)}
                           </strong>
-
                         </div>
-
                       </div>
-
 
                       <button
                         className="result-button"
-                        onClick={() =>
-                          handleViewResult(exam)
-                        }
+                        onClick={() => handleViewResult(exam)}
                       >
                         View Result →
                       </button>
-
                     </article>
-
                   ))}
-
                 </div>
-
               )}
 
             </section>
-
           </>
         )}
 

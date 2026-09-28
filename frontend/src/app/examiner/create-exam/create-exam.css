@@ -1,141 +1,186 @@
+/* ============================================================
+   CREATE EXAM PAGE
+============================================================ */
+
 .create-exam-page {
   min-height: 100vh;
-  background: #f6f8fc;
-  color: #172033;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: var(--font-body), -apple-system, "Segoe UI", sans-serif;
+}
+
+.create-exam-page h1,
+.create-exam-page h2,
+.create-exam-page h3 {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.02em;
 }
 
 
-/* =========================
-   HEADER
-========================= */
+/* ============================================================
+   HEADER (in-page — you can remove if layout provides navbar)
+============================================================ */
 
 .create-exam-header {
   height: 72px;
-  padding: 0 7%;
+  padding: 0 40px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e9f2;
+
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-bottom: 1px solid #e2e8f0;
+
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 18px;
+
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
   font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .brand-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  background: #2563eb;
+  border-radius: 11px;
+
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
 
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.32);
 }
 
-.back-button {
-  border: none;
-  background: transparent;
-  color: #52617a;
 
-  font-size: 14px;
+/* ---------- BACK BUTTON ---------- */
+
+.back-button {
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+
+  padding: 9px 14px;
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 13px;
   font-weight: 600;
 
   cursor: pointer;
 
-  padding: 10px 14px;
-  border-radius: 8px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
 }
 
 .back-button:hover {
-  background: #f1f5ff;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
   color: #2563eb;
+  transform: translateX(-2px);
 }
 
 
-/* =========================
+/* ============================================================
    CONTAINER
-========================= */
+============================================================ */
 
 .create-exam-container {
-  width: min(900px, 92%);
+  width: min(960px, 92%);
   margin: 0 auto;
-  padding: 50px 0 70px;
+  padding: 48px 0 70px;
 }
 
 
-/* =========================
+/* ============================================================
    PAGE HEADING
-========================= */
+============================================================ */
 
 .page-heading {
   display: flex;
   align-items: flex-start;
   gap: 18px;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .heading-icon {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 14px;
+  border-radius: 15px;
 
-  background: #eaf1ff;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #2563eb;
 
-  font-size: 24px;
+  font-size: 26px;
+
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
 }
 
 .heading-label {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
 
   color: #2563eb;
 
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.4px;
 }
 
 .page-heading h1 {
   margin: 0;
 
   font-size: 32px;
-  line-height: 1.2;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #0f172a;
 }
 
 .page-heading p:last-child {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
 
-  color: #6b778c;
+  color: #64748b;
   font-size: 15px;
 }
 
 
-/* =========================
+/* ============================================================
    FORM CARD
-========================= */
+============================================================ */
 
 .exam-form-card {
   background: #ffffff;
 
-  border: 1px solid #e3e8f1;
+  border: 1px solid #e2e8f0;
   border-radius: 18px;
 
-  box-shadow: 0 10px 35px rgba(30, 50, 90, 0.06);
+  box-shadow: 0 5px 20px rgba(15, 23, 42, 0.04);
 
   overflow: hidden;
 }
@@ -145,15 +190,15 @@
 }
 
 
-/* =========================
+/* ============================================================
    FORM SECTIONS
-========================= */
+============================================================ */
 
 .form-section {
   padding-bottom: 30px;
   margin-bottom: 30px;
 
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .form-section:last-of-type {
@@ -166,27 +211,27 @@
 
   font-size: 18px;
   font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .section-description {
   margin: 7px 0 22px;
 
-  color: #7a8599;
+  color: #64748b;
 
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 
-/* =========================
+/* ============================================================
    FORM GRID
-========================= */
+============================================================ */
 
 .form-grid {
   display: grid;
-
   grid-template-columns: 1fr 1fr;
-
   gap: 20px;
 }
 
@@ -195,9 +240,9 @@
 }
 
 
-/* =========================
+/* ============================================================
    INPUTS
-========================= */
+============================================================ */
 
 .form-group {
   display: flex;
@@ -207,8 +252,9 @@
 .form-group label {
   margin-bottom: 8px;
 
-  color: #344054;
+  color: #334155;
 
+  font-family: inherit;
   font-size: 13px;
   font-weight: 600;
 }
@@ -219,67 +265,218 @@
 
   box-sizing: border-box;
 
-  border: 1px solid #d6dce7;
-  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
 
   background: #ffffff;
 
-  padding: 0 13px;
+  padding: 0 14px;
 
-  color: #172033;
+  color: #0f172a;
 
+  font-family: inherit;
   font-size: 14px;
 
   outline: none;
 
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .form-group input::placeholder {
-  color: #a0a9b8;
+  color: #94a3b8;
 }
 
 .form-group input:focus {
   border-color: #2563eb;
-
-  box-shadow:
-    0 0 0 3px rgba(37, 99, 235, 0.10);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: #ffffff;
 }
 
 
-/* =========================
-   DURATION INPUT
-========================= */
+/* ============================================================
+   DURATION INPUT (suffix)
+============================================================ */
 
 .input-with-suffix {
   position: relative;
 }
 
 .input-with-suffix input {
-  padding-right: 80px;
+  padding-right: 88px;
 }
 
 .input-with-suffix span {
   position: absolute;
 
-  right: 13px;
+  right: 14px;
   top: 50%;
 
   transform: translateY(-50%);
 
-  color: #7b8496;
+  color: #94a3b8;
 
   font-size: 13px;
+  font-weight: 500;
 
   pointer-events: none;
 }
 
 
-/* =========================
+/* ============================================================
+   QUESTION TYPE GRID
+============================================================ */
+
+.question-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.question-type-card {
+  position: relative;
+
+  padding: 18px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.question-type-card:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.1);
+}
+
+.question-type-number {
+  display: inline-block;
+  margin-bottom: 12px;
+
+  padding: 4px 9px;
+  border-radius: 6px;
+
+  background: #eff6ff;
+  color: #2563eb;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.question-type-card label {
+  display: block;
+  margin-bottom: 8px;
+
+  color: #0f172a;
+
+  font-family: var(--font-display), sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.question-type-card input {
+  width: 100%;
+  height: 46px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  padding: 0 12px;
+
+  color: #0f172a;
+
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+
+  outline: none;
+
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.question-type-card input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.question-type-card small {
+  display: block;
+  margin-top: 8px;
+
+  color: #94a3b8;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+
+/* ============================================================
+   TOTAL BOX
+============================================================ */
+
+.question-total-box {
+  margin-top: 18px;
+  padding: 18px 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+}
+
+.question-total-box span,
+.question-total-box small {
+  display: block;
+}
+
+.question-total-box span {
+  color: #1e3a8a;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.question-total-box small {
+  margin-top: 4px;
+
+  color: #2563eb;
+
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.question-total-box strong {
+  color: #2563eb;
+
+  font-family: var(--font-display), sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.marks-grid {
+  margin-top: 20px;
+}
+
+
+/* ============================================================
    MESSAGES
-========================= */
+============================================================ */
 
 .message {
   display: flex;
@@ -287,16 +484,18 @@
   gap: 10px;
 
   margin-top: 20px;
-  padding: 12px 14px;
+  padding: 13px 16px;
 
-  border-radius: 9px;
+  border-radius: 10px;
 
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 .message span {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
@@ -304,35 +503,35 @@
 
   border-radius: 50%;
 
-  font-weight: 700;
+  color: white;
+  font-weight: 800;
+  font-size: 12px;
 }
 
 .error-message {
-  background: #fff1f1;
-  color: #c62828;
-  border: 1px solid #ffd6d6;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 .error-message span {
-  background: #c62828;
-  color: white;
+  background: #b91c1c;
 }
 
 .success-message {
-  background: #ecfdf3;
-  color: #087443;
-  border: 1px solid #c9f0da;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
 }
 
 .success-message span {
-  background: #087443;
-  color: white;
+  background: #15803d;
 }
 
 
-/* =========================
+/* ============================================================
    FORM ACTIONS
-========================= */
+============================================================ */
 
 .form-actions {
   display: flex;
@@ -342,58 +541,66 @@
   margin-top: 30px;
   padding-top: 25px;
 
-  border-top: 1px solid #edf0f5;
+  border-top: 1px solid #f1f5f9;
 }
 
 .cancel-button,
 .create-button {
-  height: 44px;
+  height: 46px;
 
-  padding: 0 20px;
+  padding: 0 22px;
 
-  border-radius: 9px;
+  border-radius: 10px;
 
+  font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 
   cursor: pointer;
+
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .cancel-button {
-  border: 1px solid #d8deea;
+  border: 1px solid #e2e8f0;
   background: white;
-  color: #52617a;
+  color: #64748b;
 }
 
 .cancel-button:hover {
-  background: #f7f8fb;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
 }
 
 .create-button {
   border: none;
 
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
 
-  min-width: 190px;
+  min-width: 200px;
 
-  box-shadow:
-    0 5px 12px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.3);
 }
 
-.create-button:hover {
-  background: #1d4ed8;
+.create-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.45);
 }
 
 .create-button:disabled {
-  opacity: 0.65;
+  opacity: 0.7;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
 }
 
 
-/* =========================
-   NEXT STEP
-========================= */
+/* ============================================================
+   NEXT STEP CARD
+============================================================ */
 
 .next-step-card {
   margin-top: 22px;
@@ -402,44 +609,69 @@
   align-items: flex-start;
   gap: 14px;
 
-  padding: 18px 20px;
+  padding: 20px 22px;
 
-  background: #eef5ff;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
 
-  border: 1px solid #d9e8ff;
-  border-radius: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
 }
 
 .next-step-icon {
-  font-size: 20px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #ffffff;
+  color: #2563eb;
+
+  font-size: 18px;
+
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
 }
 
 .next-step-card strong {
   display: block;
 
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 
   color: #1e3a8a;
 
-  font-size: 14px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .next-step-card p {
   margin: 0;
 
-  color: #52617a;
+  color: #475569;
 
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 
-/* =========================
+/* ============================================================
    RESPONSIVE
-========================= */
+============================================================ */
+
+@media (max-width: 900px) {
+  .question-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 @media (max-width: 700px) {
-
   .create-exam-header {
     padding: 0 20px;
   }
@@ -451,6 +683,12 @@
 
   .page-heading h1 {
     font-size: 26px;
+  }
+
+  .heading-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
   }
 
   .form-grid {
@@ -465,6 +703,10 @@
     padding: 22px;
   }
 
+  .question-type-grid {
+    grid-template-columns: 1fr;
+  }
+
   .form-actions {
     flex-direction: column-reverse;
   }
@@ -473,5 +715,4 @@
   .create-button {
     width: 100%;
   }
-
 }

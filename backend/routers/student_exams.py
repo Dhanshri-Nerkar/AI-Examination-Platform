@@ -95,21 +95,27 @@ def get_student_exams(
         if attempt and attempt.status == "submitted":
 
             completed_exams.append(
-                StudentExamResponse(
-                    id=exam.id,
-                    examiner_id=exam.examiner_id,
-                    exam_name=exam.exam_name,
-                    subject=exam.subject,
-                    duration_minutes=exam.duration_minutes,
-                    start_time=exam.start_time,
-                    end_time=exam.end_time,
-                    total_questions=exam.total_questions,
-                    maximum_marks=exam.maximum_marks,
-                    is_published=exam.is_published,
-                    attempt_id=attempt.id,
-                    attempt_status=attempt.status,
-                )
-            )
+    StudentExamResponse(
+        id=exam.id,
+        examiner_id=exam.examiner_id,
+        exam_name=exam.exam_name,
+        subject=exam.subject,
+        duration_minutes=exam.duration_minutes,
+        start_time=exam.start_time,
+        end_time=exam.end_time,
+        total_questions=exam.total_questions,
+
+        mcq_questions=exam.mcq_questions,
+        true_false_questions=exam.true_false_questions,
+        short_answer_questions=exam.short_answer_questions,
+        long_answer_questions=exam.long_answer_questions,
+
+        maximum_marks=exam.maximum_marks,
+        is_published=exam.is_published,
+        attempt_id=attempt.id,
+        attempt_status=attempt.status,
+    )
+)
 
             continue
 
@@ -120,21 +126,27 @@ def get_student_exams(
         if attempt and attempt.status == "in_progress":
 
             available_exams.append(
-                StudentExamResponse(
-                    id=exam.id,
-                    examiner_id=exam.examiner_id,
-                    exam_name=exam.exam_name,
-                    subject=exam.subject,
-                    duration_minutes=exam.duration_minutes,
-                    start_time=exam.start_time,
-                    end_time=exam.end_time,
-                    total_questions=exam.total_questions,
-                    maximum_marks=exam.maximum_marks,
-                    is_published=exam.is_published,
-                    attempt_id=attempt.id,
-                    attempt_status=attempt.status,
-                )
-            )
+    StudentExamResponse(
+        id=exam.id,
+        examiner_id=exam.examiner_id,
+        exam_name=exam.exam_name,
+        subject=exam.subject,
+        duration_minutes=exam.duration_minutes,
+        start_time=exam.start_time,
+        end_time=exam.end_time,
+        total_questions=exam.total_questions,
+
+        mcq_questions=exam.mcq_questions,
+        true_false_questions=exam.true_false_questions,
+        short_answer_questions=exam.short_answer_questions,
+        long_answer_questions=exam.long_answer_questions,
+
+        maximum_marks=exam.maximum_marks,
+        is_published=exam.is_published,
+        attempt_id=attempt.id,
+        attempt_status=attempt.status,
+    )
+)
 
             continue
 
@@ -161,21 +173,27 @@ def get_student_exams(
         # --------------------------------------------------------
 
         available_exams.append(
-            StudentExamResponse(
-                id=exam.id,
-                examiner_id=exam.examiner_id,
-                exam_name=exam.exam_name,
-                subject=exam.subject,
-                duration_minutes=exam.duration_minutes,
-                start_time=exam.start_time,
-                end_time=exam.end_time,
-                total_questions=exam.total_questions,
-                maximum_marks=exam.maximum_marks,
-                is_published=exam.is_published,
-                attempt_id=None,
-                attempt_status=None,
-            )
-        )
+    StudentExamResponse(
+        id=exam.id,
+        examiner_id=exam.examiner_id,
+        exam_name=exam.exam_name,
+        subject=exam.subject,
+        duration_minutes=exam.duration_minutes,
+        start_time=exam.start_time,
+        end_time=exam.end_time,
+        total_questions=exam.total_questions,
+
+        mcq_questions=exam.mcq_questions,
+        true_false_questions=exam.true_false_questions,
+        short_answer_questions=exam.short_answer_questions,
+        long_answer_questions=exam.long_answer_questions,
+
+        maximum_marks=exam.maximum_marks,
+        is_published=exam.is_published,
+        attempt_id=None,
+        attempt_status=None,
+    )
+)
 
     return {
         "available": available_exams,
@@ -414,18 +432,18 @@ def get_student_paper(
             continue
 
         questions.append(
-            StudentQuestionResponse(
-                id=question.id,
-                question_text=question.question_text,
-                question_type=question.question_type,
-                difficulty=question.difficulty,
-                option_a=question.option_a,
-                option_b=question.option_b,
-                option_c=question.option_c,
-                option_d=question.option_d,
-                marks=question.marks,
-            )
-        )
+    StudentQuestionResponse(
+        id=question.id,
+        question_text=question.question_text,
+        question_type=question.question_type,
+        option_a=question.option_a,
+        option_b=question.option_b,
+        option_c=question.option_c,
+        option_d=question.option_d,
+        marks=question.marks,
+        question_order=exam_question.question_order,
+    )
+)
 
     # --------------------------------------------------------
     # Return paper
@@ -617,6 +635,9 @@ def submit_exam(
 
     # --------------------------------------------------------
     # Evaluate answers
+    #
+    # MCQ / True-False -> automatic
+    # Short / Long -> examiner will check
     # --------------------------------------------------------
 
     for answer in answers:
@@ -632,12 +653,46 @@ def submit_exam(
         if not question:
             continue
 
+        question_type = (
+            question.question_type or ""
+        ).strip().lower()
+
+        # ----------------------------------------------------
+        # Short / Long Answer
+        # ----------------------------------------------------
+
+        if question_type in {
+            "short answer",
+            "short response",
+            "short",
+            "long answer",
+            "long response",
+            "essay",
+            "long",
+        }:
+
+            # Examiner will assign marks later.
+            answer.is_correct = None
+            answer.marks_awarded = 0
+
+            continue
+
+        # ----------------------------------------------------
+        # Unanswered objective question
+        # ----------------------------------------------------
+
         if not answer.selected_answer:
 
             answer.is_correct = False
             answer.marks_awarded = 0
 
+            wrong_answers += 1
+
             continue
+
+        # ----------------------------------------------------
+        # Automatically evaluate MCQ / True-False
+        # ----------------------------------------------------
 
         if (
             question.correct_answer
@@ -651,7 +706,6 @@ def submit_exam(
             answer.marks_awarded = question.marks
 
             total_score += question.marks
-
             correct_answers += 1
 
         else:
@@ -685,6 +739,16 @@ def submit_exam(
     )
 
     # --------------------------------------------------------
+    # Calculate automatically awarded marks only
+    # --------------------------------------------------------
+
+    total_score = sum(
+        answer.marks_awarded or 0
+        for answer in answers
+        if answer.is_correct is True
+    )
+
+    # --------------------------------------------------------
     # Update attempt
     # --------------------------------------------------------
 
@@ -699,7 +763,7 @@ def submit_exam(
     db.refresh(attempt)
 
     # --------------------------------------------------------
-    # Return result
+    # Return submission information
     # --------------------------------------------------------
 
     return ExamSubmitResponse(
@@ -715,7 +779,6 @@ def submit_exam(
     )
 
 
-
 @router.get(
     "/{exam_id}/result",
     response_model=ExamSubmitResponse,
@@ -728,7 +791,7 @@ def get_exam_result(
     require_student(current_user)
 
     # --------------------------------------------------------
-    # Find the examination
+    # Find examination
     # --------------------------------------------------------
 
     exam = (
@@ -747,7 +810,17 @@ def get_exam_result(
         )
 
     # --------------------------------------------------------
-    # Find ONLY this student's submitted attempt
+    # Result must be published
+    # --------------------------------------------------------
+
+    if not exam.result_published:
+        raise HTTPException(
+            status_code=403,
+            detail="Result has not been published yet.",
+        )
+
+    # --------------------------------------------------------
+    # Find student's submitted attempt
     # --------------------------------------------------------
 
     attempt = (
@@ -766,11 +839,14 @@ def get_exam_result(
     if not attempt:
         raise HTTPException(
             status_code=404,
-            detail="Result is not available because you have not submitted this examination.",
+            detail=(
+                "Result is not available because you "
+                "have not submitted this examination."
+            ),
         )
 
     # --------------------------------------------------------
-    # Get student's answers
+    # Get answers
     # --------------------------------------------------------
 
     answers = (
@@ -792,33 +868,18 @@ def get_exam_result(
                 answer.question_id
             )
 
-        question = (
-            db.query(Question)
-            .filter(
-                Question.id == answer.question_id
-            )
-            .first()
-        )
-
-        if not question:
-            continue
-
-        if not answer.selected_answer:
-            continue
-
-        if (
-            question.correct_answer
-            and
-            answer.selected_answer.strip().lower()
-            ==
-            question.correct_answer.strip().lower()
-        ):
+        if answer.is_correct is True:
             correct_answers += 1
-        else:
+
+        elif (
+            answer.is_correct is False
+            and
+            answer.selected_answer
+        ):
             wrong_answers += 1
 
     # --------------------------------------------------------
-    # Calculate unanswered questions
+    # Calculate unanswered
     # --------------------------------------------------------
 
     total_questions = (
@@ -835,7 +896,7 @@ def get_exam_result(
     )
 
     # --------------------------------------------------------
-    # Return persistent result
+    # Return final result
     # --------------------------------------------------------
 
     return ExamSubmitResponse(

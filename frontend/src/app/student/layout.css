@@ -1,0 +1,371 @@
+/* ============================================================
+   STUDENT SHELL — Horizontal Navbar Layout
+============================================================ */
+
+.student-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: var(--font-body), -apple-system, "Segoe UI", sans-serif;
+}
+
+
+/* ============================================================
+   TOP NAVBAR
+============================================================ */
+
+.student-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.student-topbar-inner {
+  max-width: 1280px;
+  height: 72px;
+  margin: 0 auto;
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+
+/* ============================================================
+   BRAND
+============================================================ */
+
+.student-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.student-topbar-brand:hover {
+  opacity: 0.85;
+}
+
+.student-topbar-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 6px 14px rgba(37, 99, 235, 0.32));
+  transition: transform 0.25s;
+}
+
+.student-topbar-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.student-topbar-brand:hover .student-topbar-logo {
+  transform: rotate(-6deg) scale(1.05);
+}
+
+.student-topbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.student-topbar-brand-text strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.student-topbar-brand-text span {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+
+/* ============================================================
+   DESKTOP NAV LINKS
+============================================================ */
+
+.student-topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.student-topbar-link {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 9px 15px;
+  border-radius: 9px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.student-topbar-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.student-topbar-icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ============================================================
+   RIGHT — user + logout
+============================================================ */
+
+.student-topbar-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.student-topbar-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+}
+
+.student-topbar-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.student-topbar-user-info strong {
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.student-topbar-user-info span {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.student-topbar-logout {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+
+  padding: 9px 14px;
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.student-topbar-logout:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+
+/* ============================================================
+   HAMBURGER (mobile)
+============================================================ */
+
+.student-topbar-hamburger {
+  display: none;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+  margin-left: auto;
+
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.student-topbar-hamburger:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+
+/* ============================================================
+   MOBILE MENU DRAWER
+============================================================ */
+
+.student-mobile-menu {
+  border-top: 1px solid #e2e8f0;
+  background: white;
+  padding: 14px 20px 18px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.student-mobile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-mobile-link {
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  border-radius: 9px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+
+  text-align: left;
+  cursor: pointer;
+
+  transition: background 0.2s, color 0.2s;
+}
+
+.student-mobile-link:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.student-mobile-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.student-mobile-logout {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+
+  padding: 11px;
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.student-mobile-logout:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+
+/* ============================================================
+   MAIN CONTENT AREA
+============================================================ */
+
+.student-shell-main {
+  min-height: calc(100vh - 72px);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1000px) {
+  .student-topbar-nav {
+    display: none;
+  }
+
+  .student-topbar-hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .student-topbar-user {
+    display: none;
+  }
+
+  .student-topbar-inner {
+    height: 66px;
+    padding: 0 18px;
+  }
+
+  .student-topbar-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .student-shell-main {
+    min-height: calc(100vh - 66px);
+  }
+}

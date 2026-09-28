@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 
 import "./attempt.css";
 
+const API = "http://127.0.0.1:8000";
+
 export default function ExamAttemptPage() {
   const router = useRouter();
   const params = useParams();
@@ -36,6 +38,14 @@ export default function ExamAttemptPage() {
   const [cameraError, setCameraError] = useState("");
 
   // ============================================================
+  // FULL SCREEN STATE
+  // ============================================================
+
+  const [isFullscreen, setIsFullscreen] = useState(true);
+  const [fullscreenWarning, setFullscreenWarning] =
+    useState(false);
+
+  // ============================================================
   // LOAD EXAMINATION
   // ============================================================
 
@@ -55,32 +65,111 @@ export default function ExamAttemptPage() {
         return;
       }
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/exams/student/${examId}/paper`,
+      // --------------------------------------------------------
+      // First try to load the paper
+      // --------------------------------------------------------
+
+      let response = await fetch(
+        `${API}/exams/student/${examId}/paper`,
         {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: "no-store",
         }
       );
 
-      const data = await response.json();
+      let data = await response.json();
+
+      // --------------------------------------------------------
+      // If there is no active attempt, start it and retry
+      // --------------------------------------------------------
+
+      if (
+        !response.ok &&
+        (
+          data.detail ===
+            "Please start the examination first." ||
+          data.detail ===
+            "Please start the examination first"
+        )
+      ) {
+        console.log(
+          "No active attempt found. Starting examination..."
+        );
+
+        const startResponse = await fetch(
+          `${API}/exams/student/${examId}/start`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const startData =
+          await startResponse.json();
+
+        if (!startResponse.ok) {
+          throw new Error(
+            startData.detail ||
+              "Unable to start the examination."
+          );
+        }
+
+        console.log(
+          "Examination started:",
+          startData
+        );
+
+        // ------------------------------------------------------
+        // Retry loading the paper
+        // ------------------------------------------------------
+
+        response = await fetch(
+          `${API}/exams/student/${examId}/paper`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        data = await response.json();
+      }
+
+      // --------------------------------------------------------
+      // Final response check
+      // --------------------------------------------------------
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Unable to load question paper."
+          data.detail ||
+            "Unable to load question paper."
         );
       }
 
       setPaper(data);
 
-      const startedAt = new Date(data.started_at);
+      // --------------------------------------------------------
+      // Calculate remaining time
+      // --------------------------------------------------------
+
+      const startedAt =
+        new Date(data.started_at);
 
       const durationMilliseconds =
-        data.duration_minutes * 60 * 1000;
+        Number(data.duration_minutes) *
+        60 *
+        1000;
 
       const endTime =
-        startedAt.getTime() + durationMilliseconds;
+        startedAt.getTime() +
+        durationMilliseconds;
 
       const remaining = Math.max(
         0,
@@ -90,9 +179,15 @@ export default function ExamAttemptPage() {
       );
 
       setTimeLeft(remaining);
+
     } catch (error) {
       console.error(error);
-      alert(error.message);
+
+      alert(
+        error.message ||
+          "Unable to load examination."
+      );
+
       router.push("/student");
     } finally {
       setLoading(false);
@@ -120,12 +215,17 @@ export default function ExamAttemptPage() {
       setCameraStatus("starting");
       setCameraError("");
 
-      if (!navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia) {
+      if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+      ) {
         throw new Error(
           "Camera access is not supported by this browser."
         );
       }
+
+      // Stop previous stream if any
+      stopCamera();
 
       const stream =
         await navigator.mediaDevices.getUserMedia({
@@ -143,33 +243,80 @@ export default function ExamAttemptPage() {
 
       streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      const video = videoRef.current;
+
+      if (video) {
+        // Attach stream
+        video.srcObject = stream;
+
+        // ------------------------------------------------------
+        // Wait for video metadata before calling play()
+        // This prevents the AbortError that you were seeing.
+        // ------------------------------------------------------
+
+        await new Promise((resolve) => {
+          if (video.readyState >= 1) {
+            resolve();
+            return;
+          }
+
+          const handleLoadedMetadata = () => {
+            video.removeEventListener(
+              "loadedmetadata",
+              handleLoadedMetadata
+            );
+
+            resolve();
+          };
+
+          video.addEventListener(
+            "loadedmetadata",
+            handleLoadedMetadata
+          );
+        });
+
+        // Make sure this stream is still the current stream
+        if (
+          streamRef.current !== stream
+        ) {
+          return;
+        }
 
         try {
-          await videoRef.current.play();
-        } catch (error) {
-          console.error(
-            "Unable to start video playback:",
-            error
-          );
+          await video.play();
+        } catch (playError) {
+          // AbortError can happen when React/browser
+          // replaces the media source during navigation.
+          if (
+            playError.name !== "AbortError"
+          ) {
+            console.error(
+              "Unable to start video playback:",
+              playError
+            );
+          }
         }
       }
 
       setCameraStatus("active");
 
-      // Detect if camera track is stopped externally
+      // --------------------------------------------------------
+      // Detect if camera track stops
+      // --------------------------------------------------------
+
       const videoTrack =
         stream.getVideoTracks()[0];
 
       if (videoTrack) {
         videoTrack.onended = () => {
           setCameraStatus("off");
+
           setCameraError(
-            "Camera access was stopped."
+            "Camera access was stopped. Please enable the camera again."
           );
         };
       }
+
     } catch (error) {
       console.error(
         "Camera error:",
@@ -199,7 +346,7 @@ export default function ExamAttemptPage() {
       } else {
         setCameraError(
           error.message ||
-          "Unable to access the camera."
+            "Unable to access the camera."
         );
       }
     }
@@ -215,6 +362,11 @@ export default function ExamAttemptPage() {
 
       streamRef.current = null;
     }
+
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+    }
   }
 
   async function retryCamera() {
@@ -223,11 +375,70 @@ export default function ExamAttemptPage() {
   }
 
   // ============================================================
+  // FULL SCREEN MONITORING
+  // ============================================================
+
+  useEffect(() => {
+    if (loading || !paper) {
+      return;
+    }
+
+    function handleFullscreenChange() {
+      const fullscreen =
+        Boolean(document.fullscreenElement);
+
+      setIsFullscreen(fullscreen);
+
+      if (!fullscreen) {
+        setFullscreenWarning(true);
+      } else {
+        setFullscreenWarning(false);
+      }
+    }
+
+    document.addEventListener(
+      "fullscreenchange",
+      handleFullscreenChange
+    );
+
+    // Check current state
+    setIsFullscreen(
+      Boolean(document.fullscreenElement)
+    );
+
+    return () => {
+      document.removeEventListener(
+        "fullscreenchange",
+        handleFullscreenChange
+      );
+    };
+  }, [loading, paper]);
+
+  async function reEnterFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (error) {
+      console.error(
+        "Unable to enter fullscreen:",
+        error
+      );
+
+      alert(
+        "Unable to enter full screen mode. Please use the full screen button again."
+      );
+    }
+  }
+
+  // ============================================================
   // TIMER
   // ============================================================
 
   useEffect(() => {
-    if (timeLeft === null) return;
+    if (timeLeft === null) {
+      return;
+    }
 
     if (timeLeft <= 0) {
       handleAutoSubmit();
@@ -299,7 +510,9 @@ export default function ExamAttemptPage() {
     questionId,
     answer
   ) {
-    if (!paper) return;
+    if (!paper) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -309,8 +522,8 @@ export default function ExamAttemptPage() {
           "access_token"
         );
 
-      await fetch(
-        `http://127.0.0.1:8000/exams/student/${examId}/answer`,
+      const response = await fetch(
+        `${API}/exams/student/${examId}/answer`,
         {
           method: "POST",
 
@@ -334,8 +547,22 @@ export default function ExamAttemptPage() {
           }),
         }
       );
+
+      if (!response.ok) {
+        const data =
+          await response.json();
+
+        console.error(
+          "Unable to save answer:",
+          data
+        );
+      }
+
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Save answer error:",
+        error
+      );
     } finally {
       setSaving(false);
     }
@@ -346,7 +573,9 @@ export default function ExamAttemptPage() {
   // ============================================================
 
   async function handleAutoSubmit() {
-    if (submitting) return;
+    if (submitting) {
+      return;
+    }
 
     await submitExam(true);
   }
@@ -354,7 +583,9 @@ export default function ExamAttemptPage() {
   async function submitExam(
     auto = false
   ) {
-    if (!paper) return;
+    if (!paper) {
+      return;
+    }
 
     if (!auto) {
       const confirmed =
@@ -377,7 +608,7 @@ export default function ExamAttemptPage() {
 
       const response =
         await fetch(
-          `http://127.0.0.1:8000/exams/student/${examId}/submit?attempt_id=${paper.attempt_id}`,
+          `${API}/exams/student/${examId}/submit?attempt_id=${paper.attempt_id}`,
           {
             method: "POST",
 
@@ -394,20 +625,38 @@ export default function ExamAttemptPage() {
       if (!response.ok) {
         throw new Error(
           data.detail ||
-          "Unable to submit examination."
+            "Unable to submit examination."
         );
       }
 
-      // Stop camera before leaving exam
+      // Stop camera
       stopCamera();
 
+      // Exit fullscreen when examination ends
+      if (
+        document.fullscreenElement
+      ) {
+        try {
+          await document.exitFullscreen();
+        } catch (error) {
+          console.error(
+            "Unable to exit fullscreen:",
+            error
+          );
+        }
+      }
+
       router.push(
-        `/student/exams/${examId}/result`
+        `/student/exams/${examId}/submitted`
       );
+
     } catch (error) {
       console.error(error);
 
-      alert(error.message);
+      alert(
+        error.message ||
+          "Unable to submit examination."
+      );
 
       setSubmitting(false);
     }
@@ -418,7 +667,9 @@ export default function ExamAttemptPage() {
   // ============================================================
 
   function goNext() {
-    if (!paper) return;
+    if (!paper) {
+      return;
+    }
 
     if (
       currentIndex <
@@ -449,13 +700,11 @@ export default function ExamAttemptPage() {
   if (loading) {
     return (
       <main className="attempt-loading">
-
         <div className="loading-spinner"></div>
 
         <h2>
           Loading question paper...
         </h2>
-
       </main>
     );
   }
@@ -470,7 +719,6 @@ export default function ExamAttemptPage() {
   ) {
     return (
       <main className="attempt-loading">
-
         <h2>
           No questions available
         </h2>
@@ -487,10 +735,13 @@ export default function ExamAttemptPage() {
         >
           Back to Dashboard
         </button>
-
       </main>
     );
   }
+
+  // ============================================================
+  // CURRENT QUESTION
+  // ============================================================
 
   const question =
     paper.questions[currentIndex];
@@ -498,8 +749,40 @@ export default function ExamAttemptPage() {
   const selectedAnswer =
     answers[question.id];
 
+  const questionType =
+    (question.question_type || "")
+      .trim()
+      .toLowerCase();
+
+  const isMCQ =
+    questionType === "mcq";
+
+  const isTrueFalse =
+    [
+      "true/false",
+      "true false",
+      "true_false",
+      "true-false",
+      "truefalse",
+    ].includes(questionType);
+
+  const isTextAnswer =
+    [
+      "short answer",
+      "short response",
+      "short",
+      "long answer",
+      "long response",
+      "essay",
+      "long",
+    ].includes(questionType);
+
   const answeredCount =
-    Object.keys(answers).length;
+    Object.keys(answers).filter(
+      (key) =>
+        answers[key] !== undefined &&
+        answers[key] !== ""
+    ).length;
 
   // ============================================================
   // PAGE
@@ -509,13 +792,43 @@ export default function ExamAttemptPage() {
     <main className="attempt-page">
 
       {/* ======================================================
+          FULLSCREEN WARNING
+      ====================================================== */}
+
+      {fullscreenWarning && (
+        <div className="fullscreen-warning">
+          <div className="fullscreen-warning-card">
+
+            <div className="fullscreen-warning-icon">
+              ⚠
+            </div>
+
+            <h2>
+              Full Screen Required
+            </h2>
+
+            <p>
+              Please return to full screen mode
+              to continue your examination.
+            </p>
+
+            <button
+              onClick={reEnterFullscreen}
+            >
+              Return to Full Screen
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================
           HEADER
       ====================================================== */}
 
       <header className="attempt-header">
 
         <div>
-
           <div className="attempt-brand">
 
             <span className="attempt-brand-icon">
@@ -535,9 +848,7 @@ export default function ExamAttemptPage() {
             </div>
 
           </div>
-
         </div>
-
 
         <div className="attempt-header-right">
 
@@ -561,7 +872,6 @@ export default function ExamAttemptPage() {
         </div>
 
       </header>
-
 
       {/* ======================================================
           CAMERA BAR
@@ -615,12 +925,12 @@ export default function ExamAttemptPage() {
             {cameraStatus === "active" && (
               <div className="camera-live-badge">
                 <span className="camera-live-dot"></span>
+
                 Camera Active
               </div>
             )}
 
           </div>
-
 
           <div className="camera-info">
 
@@ -638,7 +948,6 @@ export default function ExamAttemptPage() {
         </div>
 
       </section>
-
 
       {/* ======================================================
           CONTENT
@@ -669,7 +978,6 @@ export default function ExamAttemptPage() {
 
         </div>
 
-
         <div className="attempt-layout">
 
           {/* ==================================================
@@ -693,15 +1001,15 @@ export default function ExamAttemptPage() {
 
             </div>
 
-
             <h1>
               {question.question_text}
             </h1>
 
+            {/* ==================================================
+                MCQ
+            ================================================== */}
 
-            {question.question_type ===
-              "MCQ" && (
-
+            {isMCQ && (
               <div className="answer-options">
 
                 {[
@@ -709,46 +1017,124 @@ export default function ExamAttemptPage() {
                   ["B", question.option_b],
                   ["C", question.option_c],
                   ["D", question.option_d],
-                ].map(
-                  ([letter, option]) => (
-
-                    <button
-                      key={letter}
-                      className={
-                        selectedAnswer ===
-                        letter
-                          ? "answer-option selected"
-                          : "answer-option"
-                      }
-                      onClick={() =>
-                        selectAnswer(
-                          question.id,
-                          letter
-                        )
-                      }
-                    >
-
-                      <span className="option-letter">
-                        {letter}
-                      </span>
-
-                      <span>
-                        {option}
-                      </span>
-
-                    </button>
-
+                ]
+                  .filter(
+                    ([, option]) =>
+                      option !== null &&
+                      option !== undefined &&
+                      option !== ""
                   )
-                )}
+                  .map(
+                    ([letter, option]) => (
+                      <button
+                        key={letter}
+                        type="button"
+                        className={
+                          selectedAnswer ===
+                          letter
+                            ? "answer-option selected"
+                            : "answer-option"
+                        }
+                        onClick={() =>
+                          selectAnswer(
+                            question.id,
+                            letter
+                          )
+                        }
+                      >
+
+                        <span className="option-letter">
+                          {letter}
+                        </span>
+
+                        <span className="option-text">
+                          {option}
+                        </span>
+
+                      </button>
+                    )
+                  )}
 
               </div>
-
             )}
 
+            {/* ==================================================
+                TRUE / FALSE
+            ================================================== */}
 
-            {question.question_type !==
-              "MCQ" && (
+            {isTrueFalse && (
+              <div className="true-false-options">
 
+                <button
+                  type="button"
+                  className={
+                    selectedAnswer ===
+                    "True"
+                      ? "true-false-option selected"
+                      : "true-false-option"
+                  }
+                  onClick={() =>
+                    selectAnswer(
+                      question.id,
+                      "True"
+                    )
+                  }
+                >
+
+                  <span className="radio-circle">
+
+                    {selectedAnswer ===
+                      "True" && (
+                      <span className="radio-dot"></span>
+                    )}
+
+                  </span>
+
+                  <span className="true-false-text">
+                    True
+                  </span>
+
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    selectedAnswer ===
+                    "False"
+                      ? "true-false-option selected"
+                      : "true-false-option"
+                  }
+                  onClick={() =>
+                    selectAnswer(
+                      question.id,
+                      "False"
+                    )
+                  }
+                >
+
+                  <span className="radio-circle">
+
+                    {selectedAnswer ===
+                      "False" && (
+                      <span className="radio-dot"></span>
+                    )}
+
+                  </span>
+
+                  <span className="true-false-text">
+                    False
+                  </span>
+
+                </button>
+
+              </div>
+            )}
+
+            {/* ==================================================
+                SHORT / LONG ANSWER
+            ================================================== */}
+
+            {isTextAnswer && (
               <textarea
                 className="text-answer"
                 placeholder="Type your answer here..."
@@ -762,9 +1148,11 @@ export default function ExamAttemptPage() {
                   )
                 }
               />
-
             )}
 
+            {/* ==================================================
+                NAVIGATION
+            ================================================== */}
 
             <div className="question-navigation">
 
@@ -777,7 +1165,6 @@ export default function ExamAttemptPage() {
               >
                 ← Previous
               </button>
-
 
               {currentIndex <
               paper.questions.length - 1 ? (
@@ -809,7 +1196,6 @@ export default function ExamAttemptPage() {
 
           </section>
 
-
           {/* ==================================================
               SIDEBAR
           ================================================== */}
@@ -824,7 +1210,6 @@ export default function ExamAttemptPage() {
               Click a number to navigate.
             </p>
 
-
             <div className="question-number-grid">
 
               {paper.questions.map(
@@ -836,7 +1221,6 @@ export default function ExamAttemptPage() {
                     answers[item.id] !== "";
 
                   return (
-
                     <button
                       key={item.id}
                       className={`
@@ -859,13 +1243,11 @@ export default function ExamAttemptPage() {
                     >
                       {index + 1}
                     </button>
-
                   );
                 }
               )}
 
             </div>
-
 
             <div className="sidebar-legend">
 
@@ -885,7 +1267,6 @@ export default function ExamAttemptPage() {
               </div>
 
             </div>
-
 
             <button
               className="sidebar-submit-button"

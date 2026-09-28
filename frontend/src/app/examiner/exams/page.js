@@ -88,11 +88,6 @@ export default function ExamsPage() {
       ? new Date(exam.end_time)
       : null;
 
-    /*
-      If examiner has not published the exam,
-      show Draft even if the schedule is valid.
-    */
-
     if (
       exam.is_published === false
     ) {
@@ -186,11 +181,6 @@ export default function ExamsPage() {
     setPublishingExamId(exam.id);
 
     try {
-      /*
-        Change this endpoint only if your backend
-        uses a different publish route.
-      */
-
       const response = await fetch(
         `http://127.0.0.1:8000/exams/${exam.id}/publish`,
         {
@@ -213,11 +203,6 @@ export default function ExamsPage() {
             `Unable to ${actionText} examination.`
         );
       }
-
-      /*
-        Update only the changed exam
-        instead of loading the complete page again.
-      */
 
       setExams((currentExams) =>
         currentExams.map((item) =>
@@ -269,22 +254,6 @@ export default function ExamsPage() {
   };
 
   // ============================================================
-  // VIEW DETAILS
-  // ============================================================
-
-  const handleViewDetails = (exam) => {
-    alert(
-      `Exam: ${exam.exam_name}\n` +
-        `Subject: ${exam.subject}\n` +
-        `Duration: ${exam.duration_minutes} minutes\n` +
-        `Questions: ${exam.total_questions}\n` +
-        `Maximum Marks: ${exam.maximum_marks}\n` +
-        `Starts: ${formatDate(exam.start_time)}\n` +
-        `Ends: ${formatDate(exam.end_time)}`
-    );
-  };
-
-  // ============================================================
   // LOADING SCREEN
   // ============================================================
 
@@ -317,25 +286,18 @@ export default function ExamsPage() {
     <main className="exams-page">
 
       {/* ======================================================
-          HEADER
+          HERO HEADER
       ====================================================== */}
 
-      <header className="exams-header">
+      <section className="exams-hero">
 
-        <div>
+        <div className="exams-hero-icon">📚</div>
 
-          <button
-            className="back-button"
-            onClick={() =>
-              router.push("/examiner")
-            }
-          >
-            ← Dashboard
-          </button>
+        <div className="exams-hero-content">
 
-          <h1>
-            Examinations
-          </h1>
+          <p className="section-label">EXAMINER</p>
+
+          <h1>Examinations</h1>
 
           <p>
             View, manage and prepare all
@@ -355,7 +317,7 @@ export default function ExamsPage() {
           + Create Examination
         </button>
 
-      </header>
+      </section>
 
 
       {/* ======================================================
@@ -448,9 +410,7 @@ export default function ExamsPage() {
                     key={exam.id}
                   >
 
-                    {/* ==================================================
-                        CARD TOP
-                    ================================================== */}
+                    {/* CARD TOP */}
 
                     <div className="exam-card-top">
 
@@ -467,9 +427,7 @@ export default function ExamsPage() {
                     </div>
 
 
-                    {/* ==================================================
-                        EXAM TITLE
-                    ================================================== */}
+                    {/* TITLE */}
 
                     <h2>
                       {exam.exam_name}
@@ -480,29 +438,23 @@ export default function ExamsPage() {
                     </div>
 
 
-                    {/* ==================================================
-                        EXAM DETAILS
-                    ================================================== */}
+                    {/* DETAILS */}
 
                     <div className="exam-details">
 
                       <div className="detail-item">
-
                         <span className="detail-label">
                           Duration
                         </span>
 
                         <strong>
-                          {exam.duration_minutes}
-                          {" "}
+                          {exam.duration_minutes}{" "}
                           minutes
                         </strong>
-
                       </div>
 
 
                       <div className="detail-item">
-
                         <span className="detail-label">
                           Questions
                         </span>
@@ -510,12 +462,10 @@ export default function ExamsPage() {
                         <strong>
                           {exam.total_questions}
                         </strong>
-
                       </div>
 
 
                       <div className="detail-item">
-
                         <span className="detail-label">
                           Maximum Marks
                         </span>
@@ -523,53 +473,38 @@ export default function ExamsPage() {
                         <strong>
                           {exam.maximum_marks}
                         </strong>
-
                       </div>
 
                     </div>
 
 
-                    {/* ==================================================
-                        SCHEDULE
-                    ================================================== */}
+                    {/* SCHEDULE */}
 
                     <div className="exam-schedule">
 
                       <div>
-
-                        <span>
-                          Starts
-                        </span>
-
+                        <span>Starts</span>
                         <strong>
                           {formatDate(
                             exam.start_time
                           )}
                         </strong>
-
                       </div>
 
 
                       <div>
-
-                        <span>
-                          Ends
-                        </span>
-
+                        <span>Ends</span>
                         <strong>
                           {formatDate(
                             exam.end_time
                           )}
                         </strong>
-
                       </div>
 
                     </div>
 
 
-                    {/* ==================================================
-                        QUESTION PAPER QUICK ACTION
-                    ================================================== */}
+                    {/* QUESTION PAPER QUICK ACTION */}
 
                     <div className="question-paper-highlight">
 
@@ -598,15 +533,13 @@ export default function ExamsPage() {
                           )
                         }
                       >
-                        View Paper →
+                        View Details →
                       </button>
 
                     </div>
 
 
-                    {/* ==================================================
-                        ACTIONS
-                    ================================================== */}
+                    {/* ACTIONS */}
 
                     <div className="exam-actions">
 
@@ -642,24 +575,10 @@ export default function ExamsPage() {
                           : "Publish"}
                       </button>
 
-
-                      <button
-                        className="details-button"
-                        onClick={() =>
-                          handleViewDetails(
-                            exam
-                          )
-                        }
-                      >
-                        View Details
-                      </button>
-
                     </div>
 
 
-                    {/* ==================================================
-                        PUBLISHED STATUS
-                    ================================================== */}
+                    {/* PUBLISHED STATUS */}
 
                     <div className="publication-status">
 

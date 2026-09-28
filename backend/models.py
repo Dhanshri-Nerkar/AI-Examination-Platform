@@ -2,14 +2,11 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
+    id = Column(Integer, primary_key=True, index=True)
 
     name = Column(
         String(100),
@@ -45,37 +42,105 @@ class User(Base):
         server_default=func.now()
     )
 
+
 class Exam(Base):
     __tablename__ = "exams"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     examiner_id = Column(
         Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
-    exam_name = Column(String(150), nullable=False)
+    exam_name = Column(
+        String(150),
+        nullable=False
+    )
 
-    subject = Column(String(100), nullable=False)
+    subject = Column(
+        String(100),
+        nullable=False
+    )
 
-    duration_minutes = Column(Integer, nullable=False)
+    duration_minutes = Column(
+        Integer,
+        nullable=False
+    )
 
-    start_time = Column(DateTime, nullable=False)
+    start_time = Column(
+        DateTime,
+        nullable=False
+    )
 
-    end_time = Column(DateTime, nullable=False)
+    end_time = Column(
+        DateTime,
+        nullable=False
+    )
 
-    total_questions = Column(Integer, nullable=False)
+    total_questions = Column(
+        Integer,
+        nullable=False
+    )
 
-    maximum_marks = Column(Integer, nullable=False)
+    # -------------------------------------------------
+    # Question type distribution
+    # -------------------------------------------------
 
-    is_published = Column(Boolean, nullable=False,default=False)
+    mcq_questions = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    true_false_questions = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    short_answer_questions = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    long_answer_questions = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
+    maximum_marks = Column(
+        Integer,
+        nullable=False
+    )
+
+    is_published = Column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    result_published = Column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
 
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now()
     )
+
 
 class Question(Base):
     __tablename__ = "questions"
@@ -88,7 +153,10 @@ class Question(Base):
 
     examiner_id = Column(
         Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
@@ -159,13 +227,19 @@ class ExamQuestion(Base):
 
     exam_id = Column(
         Integer,
-        ForeignKey("exams.id", ondelete="CASCADE"),
+        ForeignKey(
+            "exams.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
     question_id = Column(
         Integer,
-        ForeignKey("questions.id", ondelete="CASCADE"),
+        ForeignKey(
+            "questions.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
@@ -183,17 +257,27 @@ class ExamQuestion(Base):
 class ExamAttempt(Base):
     __tablename__ = "exam_attempts"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     exam_id = Column(
         Integer,
-        ForeignKey("exams.id", ondelete="CASCADE"),
+        ForeignKey(
+            "exams.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
     student_id = Column(
         Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
@@ -224,17 +308,27 @@ class ExamAttempt(Base):
 class StudentAnswer(Base):
     __tablename__ = "student_answers"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     attempt_id = Column(
         Integer,
-        ForeignKey("exam_attempts.id", ondelete="CASCADE"),
+        ForeignKey(
+            "exam_attempts.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
     question_id = Column(
         Integer,
-        ForeignKey("questions.id", ondelete="CASCADE"),
+        ForeignKey(
+            "questions.id",
+            ondelete="CASCADE"
+        ),
         nullable=False
     )
 
