@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import "./create-question.css";
 
-export default function CreateQuestionPage() {
+function CreateQuestionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -549,5 +549,20 @@ export default function CreateQuestionPage() {
         </form>
       </section>
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <main className="create-question-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading...</p>
+        </main>
+      }
+    >
+      <CreateQuestionPage />
+    </Suspense>
   );
 }
