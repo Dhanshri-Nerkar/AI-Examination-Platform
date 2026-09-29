@@ -1090,3 +1090,42 @@ a {
     font-size: 15px;
   }
 }
+
+/* ==================================================
+   NAVBAR LANGUAGE SWITCHER
+================================================== */
+
+.navbar-language {
+  display: flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.navbar-language .language-switcher {
+  display: flex;
+  align-items: center;
+}
+
+/* Keep navbar items aligned */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+/* Language selector should not look like a separate
+   floating element */
+.navbar-language select {
+  height: 38px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .nav-links {
+    gap: 14px;
+  }
+
+  .navbar-language {
+    margin-right: 0;
+  }
+}

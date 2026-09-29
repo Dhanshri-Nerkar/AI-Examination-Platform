@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 import { loginUser } from "../../../lib/api";
 import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +57,7 @@ export default function LoginPage() {
 
     } catch (error) {
       setError(
-        error.message || "Invalid email or password"
+        error.message || t("login.invalid_credentials")
       );
     } finally {
       setLoading(false);
@@ -72,17 +74,35 @@ export default function LoginPage() {
         <Link href="/" className="brand">
 
           <div className="brand-mark">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <defs>
-                <linearGradient id="loginLogoGrad" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="100%" stopColor="#60a5fa" />
+                <linearGradient
+                  id="loginLogoGrad"
+                  x1="0"
+                  y1="0"
+                  x2="40"
+                  y2="40"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="#2563eb"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="#60a5fa"
+                  />
                 </linearGradient>
               </defs>
+
               <path
                 d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
                 fill="url(#loginLogoGrad)"
               />
+
               <text
                 x="20"
                 y="25"
@@ -108,18 +128,17 @@ export default function LoginPage() {
 
           <div className="info-badge">
             <span className="badge-dot" />
-            Smart & Simple Examination Platform
+            {t("login.smart_simple")}
           </div>
 
           <h1>
-            Welcome
+            {t("login.welcome")}
             <br />
-            <span>back.</span>
+            <span>{t("login.back")}</span>
           </h1>
 
           <p className="login-description">
-            Sign in to continue your examination journey
-            and access everything you need in one place.
+            {t("login.description")}
           </p>
 
 
@@ -127,26 +146,52 @@ export default function LoginPage() {
           <div className="login-benefits">
 
             <div className="login-benefit">
-              <div className="login-benefit-icon">✓</div>
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Safe & Secure</strong>
-                <span>Your account information is kept safe and private.</span>
+                <strong>
+                  {t("login.safe_secure")}
+                </strong>
+
+                <span>
+                  {t("login.safe_secure_description")}
+                </span>
               </div>
             </div>
 
+
             <div className="login-benefit">
-              <div className="login-benefit-icon">✓</div>
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Everything in One Place</strong>
-                <span>Access your examinations, results and activities easily.</span>
+                <strong>
+                  {t("login.everything_one_place")}
+                </strong>
+
+                <span>
+                  {t("login.everything_one_place_description")}
+                </span>
               </div>
             </div>
 
+
             <div className="login-benefit">
-              <div className="login-benefit-icon">✓</div>
+              <div className="login-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Easy to Use</strong>
-                <span>A simple experience designed for everyone.</span>
+                <strong>
+                  {t("login.easy_to_use")}
+                </strong>
+
+                <span>
+                  {t("login.easy_to_use_description")}
+                </span>
               </div>
             </div>
 
@@ -163,8 +208,13 @@ export default function LoginPage() {
         <div className="login-card">
 
           <div className="login-header">
-            <h2>Welcome back</h2>
-            <p>Sign in to continue to your account.</p>
+            <h2>
+              {t("login.welcome_back")}
+            </h2>
+
+            <p>
+              {t("login.sign_in_description")}
+            </p>
           </div>
 
 
@@ -181,12 +231,17 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit}>
 
             <div className="login-form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">
+                {t("login.email")}
+              </label>
+
               <input
                 id="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
                 placeholder="you@example.com"
                 required
                 disabled={loading}
@@ -196,13 +251,20 @@ export default function LoginPage() {
 
 
             <div className="login-form-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">
+                {t("login.password")}
+              </label>
+
               <input
                 id="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+                placeholder={t(
+                  "login.password_placeholder"
+                )}
                 required
                 disabled={loading}
                 autoComplete="current-password"
@@ -212,8 +274,14 @@ export default function LoginPage() {
 
             <div className="remember-row">
               <label className="remember-label">
-                <input type="checkbox" disabled={loading} />
-                <span>Remember me</span>
+                <input
+                  type="checkbox"
+                  disabled={loading}
+                />
+
+                <span>
+                  {t("login.remember_me")}
+                </span>
               </label>
             </div>
 
@@ -223,20 +291,30 @@ export default function LoginPage() {
               disabled={loading}
               className="login-submit"
             >
-              {loading ? "Logging in..." : "Sign In"}
+              {loading
+                ? t("login.logging_in")
+                : t("login.sign_in")}
             </button>
 
           </form>
 
 
           <div className="register-text">
-            <span>Don't have an account?</span>
-            <Link href="/register">Create an account</Link>
+            <span>
+              {t("login.no_account")}
+            </span>
+
+            <Link href="/register">
+              {t("login.create_account")}
+            </Link>
           </div>
 
 
-          <Link href="/" className="back-home">
-            ← Back to home
+          <Link
+            href="/"
+            className="back-home"
+          >
+            ← {t("login.back_home")}
           </Link>
 
         </div>

@@ -402,3 +402,24 @@
   font-weight: 700;
   line-height: 1;
 }
+
+
+.admin-language {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.admin-language .language-switcher {
+  display: flex;
+  align-items: center;
+}
+
+.admin-language .language-switcher label {
+  display: none;
+}
+
+.admin-language .language-switcher select {
+  min-width: 95px;
+  height: 36px;
+}

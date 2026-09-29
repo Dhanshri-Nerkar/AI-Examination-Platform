@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+
 import "./register.css";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [form, setForm] = useState({
     name: "",
@@ -38,25 +41,25 @@ export default function RegisterPage() {
 
     // Name validation
     if (!form.name.trim()) {
-      setError("Please enter your full name.");
+      setError(t("register.name_required"));
       return;
     }
 
     // Email validation
     if (!form.email.trim()) {
-      setError("Please enter your email address.");
+      setError(t("register.email_required"));
       return;
     }
 
     // Password validation
     if (form.password.length < 6) {
-      setError("Your password must contain at least 6 characters.");
+      setError(t("register.password_length"));
       return;
     }
 
     // Confirm password
     if (form.password !== form.confirmPassword) {
-      setError("The passwords you entered do not match.");
+      setError(t("register.password_mismatch"));
       return;
     }
 
@@ -85,14 +88,14 @@ export default function RegisterPage() {
       if (!response.ok) {
         throw new Error(
           data.detail ||
-            "We could not create your account. Please try again."
+            t("register.create_account_error")
         );
       }
 
       // Examiner registration
       if (form.role === "examiner") {
         setSuccess(
-          "Your request has been submitted successfully. An administrator will review your request."
+          t("register.examiner_success")
         );
 
         setForm({
@@ -108,16 +111,17 @@ export default function RegisterPage() {
 
       // Student registration
       setSuccess(
-        "Your account has been created successfully! Taking you to the login page..."
+        t("register.student_success")
       );
 
       setTimeout(() => {
         router.push("/login");
       }, 1500);
+
     } catch (err) {
       setError(
         err.message ||
-          "Unable to create your account. Please check your connection and try again."
+          t("register.connection_error")
       );
     } finally {
       setLoading(false);
@@ -132,18 +136,38 @@ export default function RegisterPage() {
 
         {/* Brand */}
         <Link href="/" className="brand">
+
           <div className="brand-mark">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <defs>
-                <linearGradient id="registerLogoGrad" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="100%" stopColor="#60a5fa" />
+                <linearGradient
+                  id="registerLogoGrad"
+                  x1="0"
+                  y1="0"
+                  x2="40"
+                  y2="40"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="#2563eb"
+                  />
+
+                  <stop
+                    offset="100%"
+                    stopColor="#60a5fa"
+                  />
                 </linearGradient>
               </defs>
+
               <path
                 d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
                 fill="url(#registerLogoGrad)"
               />
+
               <text
                 x="20"
                 y="25"
@@ -158,54 +182,92 @@ export default function RegisterPage() {
               </text>
             </svg>
           </div>
+
           <span>AI Examination</span>
+
         </Link>
+
 
         <div className="register-info-content">
 
           <div className="info-badge">
             <span className="badge-dot" />
-            Smart & Simple Examination Platform
+            {t("register.smart_simple")}
           </div>
 
           <h1>
-            Start your
+            {t("register.start_your")}
             <br />
-            <span>examination journey.</span>
+            <span>
+              {t("register.examination_journey")}
+            </span>
           </h1>
 
           <p className="register-description">
-            Create your account and enjoy a simple, secure and
-            convenient examination experience.
+            {t("register.description")}
           </p>
+
 
           <div className="register-benefits">
 
             <div className="register-benefit">
-              <div className="register-benefit-icon">✓</div>
+              <div className="register-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Safe & Secure</strong>
-                <span>Your account and personal information are kept secure.</span>
+                <strong>
+                  {t("register.safe_secure")}
+                </strong>
+
+                <span>
+                  {t(
+                    "register.safe_secure_description"
+                  )}
+                </span>
               </div>
             </div>
 
+
             <div className="register-benefit">
-              <div className="register-benefit-icon">✓</div>
+              <div className="register-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Simple Examination</strong>
-                <span>Take your examinations easily from one convenient platform.</span>
+                <strong>
+                  {t("register.simple_examination")}
+                </strong>
+
+                <span>
+                  {t(
+                    "register.simple_examination_description"
+                  )}
+                </span>
               </div>
             </div>
 
+
             <div className="register-benefit">
-              <div className="register-benefit-icon">✓</div>
+              <div className="register-benefit-icon">
+                ✓
+              </div>
+
               <div>
-                <strong>Track Your Progress</strong>
-                <span>View your results and keep track of your examination performance.</span>
+                <strong>
+                  {t("register.track_progress")}
+                </strong>
+
+                <span>
+                  {t(
+                    "register.track_progress_description"
+                  )}
+                </span>
               </div>
             </div>
 
           </div>
+
         </div>
       </section>
 
@@ -217,19 +279,40 @@ export default function RegisterPage() {
 
           {/* Mobile Brand */}
           <div className="mobile-brand">
+
             <Link href="/" className="brand">
+
               <div className="brand-mark">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  viewBox="0 0 40 40"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <defs>
-                    <linearGradient id="registerLogoGradMobile" x1="0" y1="0" x2="40" y2="40">
-                      <stop offset="0%" stopColor="#2563eb" />
-                      <stop offset="100%" stopColor="#60a5fa" />
+                    <linearGradient
+                      id="registerLogoGradMobile"
+                      x1="0"
+                      y1="0"
+                      x2="40"
+                      y2="40"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="#2563eb"
+                      />
+
+                      <stop
+                        offset="100%"
+                        stopColor="#60a5fa"
+                      />
                     </linearGradient>
                   </defs>
+
                   <path
                     d="M20 2 L35 10 L35 24 C35 31 28 36 20 38 C12 36 5 31 5 24 L5 10 Z"
                     fill="url(#registerLogoGradMobile)"
                   />
+
                   <text
                     x="20"
                     y="25"
@@ -244,15 +327,23 @@ export default function RegisterPage() {
                   </text>
                 </svg>
               </div>
+
               <span>AI Examination</span>
+
             </Link>
+
           </div>
 
 
           {/* Header */}
           <div className="form-header">
-            <h2>Create your account</h2>
-            <p>Join the platform and get started today.</p>
+            <h2>
+              {t("register.create_account")}
+            </h2>
+
+            <p>
+              {t("register.join_platform")}
+            </p>
           </div>
 
 
@@ -279,23 +370,34 @@ export default function RegisterPage() {
 
             {/* Full Name */}
             <div className="form-group">
-              <label htmlFor="name">Full Name</label>
+
+              <label htmlFor="name">
+                {t("register.full_name")}
+              </label>
+
               <input
                 id="name"
                 name="name"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder={t(
+                  "register.full_name_placeholder"
+                )}
                 value={form.name}
                 onChange={handleChange}
                 disabled={loading}
                 autoComplete="name"
               />
+
             </div>
 
 
             {/* Email */}
             <div className="form-group">
-              <label htmlFor="email">Email Address</label>
+
+              <label htmlFor="email">
+                {t("register.email")}
+              </label>
+
               <input
                 id="email"
                 name="email"
@@ -306,13 +408,16 @@ export default function RegisterPage() {
                 disabled={loading}
                 autoComplete="email"
               />
+
             </div>
 
 
             {/* Account Type */}
             <div className="form-group">
 
-              <label>I want to register as</label>
+              <label>
+                {t("register.register_as")}
+              </label>
 
               <div className="role-options">
 
@@ -325,20 +430,41 @@ export default function RegisterPage() {
                       : "role-option"
                   }
                   onClick={() => {
-                    setForm({ ...form, role: "student" });
+                    setForm({
+                      ...form,
+                      role: "student",
+                    });
+
                     setError("");
                     setSuccess("");
                   }}
                   disabled={loading}
                 >
-                  <span className="role-icon">🎓</span>
-                  <span className="role-content">
-                    <strong>Student</strong>
-                    <small>Take examinations</small>
+
+                  <span className="role-icon">
+                    🎓
                   </span>
+
+                  <span className="role-content">
+
+                    <strong>
+                      {t("register.student")}
+                    </strong>
+
+                    <small>
+                      {t(
+                        "register.student_description"
+                      )}
+                    </small>
+
+                  </span>
+
                   {form.role === "student" && (
-                    <span className="check">✓</span>
+                    <span className="check">
+                      ✓
+                    </span>
                   )}
+
                 </button>
 
 
@@ -351,20 +477,41 @@ export default function RegisterPage() {
                       : "role-option"
                   }
                   onClick={() => {
-                    setForm({ ...form, role: "examiner" });
+                    setForm({
+                      ...form,
+                      role: "examiner",
+                    });
+
                     setError("");
                     setSuccess("");
                   }}
                   disabled={loading}
                 >
-                  <span className="role-icon">🧑‍🏫</span>
-                  <span className="role-content">
-                    <strong>Examiner</strong>
-                    <small>Create and manage examinations</small>
+
+                  <span className="role-icon">
+                    🧑‍🏫
                   </span>
+
+                  <span className="role-content">
+
+                    <strong>
+                      {t("register.examiner")}
+                    </strong>
+
+                    <small>
+                      {t(
+                        "register.examiner_description"
+                      )}
+                    </small>
+
+                  </span>
+
                   {form.role === "examiner" && (
-                    <span className="check">✓</span>
+                    <span className="check">
+                      ✓
+                    </span>
                   )}
+
                 </button>
 
               </div>
@@ -373,15 +520,27 @@ export default function RegisterPage() {
               {/* Examiner Approval */}
               {form.role === "examiner" && (
                 <div className="approval-note">
-                  <div className="approval-icon">!</div>
-                  <div>
-                    <strong>Administrator approval required</strong>
-                    <p>
-                      Your registration request will be reviewed by
-                      an administrator before you can access the
-                      examiner account.
-                    </p>
+
+                  <div className="approval-icon">
+                    !
                   </div>
+
+                  <div>
+
+                    <strong>
+                      {t(
+                        "register.admin_approval"
+                      )}
+                    </strong>
+
+                    <p>
+                      {t(
+                        "register.admin_approval_description"
+                      )}
+                    </p>
+
+                  </div>
+
                 </div>
               )}
 
@@ -390,34 +549,51 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div className="form-group">
-              <label htmlFor="password">Password</label>
+
+              <label htmlFor="password">
+                {t("register.password")}
+              </label>
+
               <input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Create a password"
+                placeholder={t(
+                  "register.password_placeholder"
+                )}
                 value={form.password}
                 onChange={handleChange}
                 disabled={loading}
                 autoComplete="new-password"
               />
-              <div className="password-hint">Use at least 6 characters.</div>
+
+              <div className="password-hint">
+                {t("register.password_hint")}
+              </div>
+
             </div>
 
 
             {/* Confirm Password */}
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+
+              <label htmlFor="confirmPassword">
+                {t("register.confirm_password")}
+              </label>
+
               <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
-                placeholder="Enter your password again"
+                placeholder={t(
+                  "register.confirm_password_placeholder"
+                )}
                 value={form.confirmPassword}
                 onChange={handleChange}
                 disabled={loading}
                 autoComplete="new-password"
               />
+
             </div>
 
 
@@ -428,10 +604,10 @@ export default function RegisterPage() {
               disabled={loading}
             >
               {loading
-                ? "Creating your account..."
+                ? t("register.creating_account")
                 : form.role === "examiner"
-                ? "Submit Request"
-                : "Create Account"}
+                ? t("register.submit_request")
+                : t("register.create_account_button")}
             </button>
 
           </form>
@@ -439,14 +615,22 @@ export default function RegisterPage() {
 
           {/* Login */}
           <div className="login-text">
-            Already have an account?
-            <Link href="/login">Sign in</Link>
+
+            {t("register.already_account")}
+
+            <Link href="/login">
+              {t("register.sign_in")}
+            </Link>
+
           </div>
 
 
           {/* Back Home */}
-          <Link href="/" className="back-home">
-            ← Back to home
+          <Link
+            href="/"
+            className="back-home"
+          >
+            ← {t("register.back_home")}
           </Link>
 
         </div>
